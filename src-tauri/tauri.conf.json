@@ -1,0 +1,52 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Android Sword",
+  "version": "0.1.0",
+  "identifier": "ncra.tools.apk-hooker",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "splash",
+        "title": "",
+        "url": "splash.html",
+        "width": 420,
+        "height": 180,
+        "center": true,
+        "resizable": false,
+        "decorations": false,
+        "transparent": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true
+      },
+      {
+        "label": "main",
+        "title": "Android Sword",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 1200,
+        "minHeight": 800,
+        "resizable": true,
+        "theme": "Dark",
+        "visible": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ]
+  }
+}

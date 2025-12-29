@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Android Screen Mirror - 操作页面</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部栏 -->
+        <div class="top-bar">
+            <button id="back-btn" class="back-btn">← 返回</button>
+            <div class="case-title" id="case-title">案件名称</div>
+        </div>
+
+        <!-- 主要内容区域 -->
+        <div class="content-wrapper">
+            <!-- 左侧模拟器 -->
+            <div class="left-panel">
+                <!-- 模拟器工具栏 -->
+                <div class="device-toolbar">
+                    <button id="reconnect-btn" class="toolbar-btn reconnect-btn-small" title="重新检测连接">重连</button>
+                    <button id="refresh-btn" class="toolbar-btn refresh-btn-small" title="刷新页面">刷新</button>
+                </div>
+                <div class="device-container" id="device-container">
+                    <iframe id="device-iframe" class="device-iframe" src="about:blank"></iframe>
+                    <div id="loading-indicator" class="loading-indicator">
+                        <div class="spinner"></div>
+                        <div class="loading-text">自动连接手机中...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧操作面板 -->
+            <div class="right-panel" id="right-panel">
+                <!-- 右上角任务提示 -->
+                <div id="task-indicator" class="task-indicator hidden">
+                    <div class="task-spinner"></div>
+                    <span class="task-text">反编译中...</span>
+                </div>
+                <div id="panel-content" class="panel-content">
+                    <!-- 第一行：APK选择栏 -->
+                    <div class="apk-selector-row">
+                        <div id="apk-tabs" class="apk-tabs">
+                            <!-- APK标签会动态添加到这里 -->
+                        </div>
+                        <button id="add-apk-btn" class="add-apk-btn-small">+ 添加</button>
+                        <input id="apk-file-input" type="file" accept=".apk" style="display: none;">
+                    </div>
+                    <!-- 第二行：APK详情 -->
+                    <div id="apk-detail" class="apk-detail">
+                        <div class="apk-detail-empty">暂无APK，请点击添加按钮上传</div>
+                    </div>
+                    <!-- 第三行：操作区切换栏 -->
+                    <div id="apk-operation-tabs" class="apk-operation-tabs">
+                        <div class="operation-tab active" data-tab="overview">总览</div>
+                        <div class="operation-tab" data-tab="details">详细信息</div>
+                        <div class="operation-tab" data-tab="permissions">静态权限</div>
+                        <div class="operation-tab" data-tab="services">第三方服务</div>
+                        <div class="operation-tab" data-tab="source">源码分析</div>
+                        <div class="operation-tab" data-tab="sensitive">敏感信息</div>
+                        <div class="operation-tab" data-tab="frida">Frida脚本</div>
+                    </div>
+                    <!-- 第四行：操作区内容 -->
+                    <div id="apk-operation-content" class="apk-operation-content">
+                        <div id="tab-overview" class="operation-panel active">
+                            <div class="operation-panel-placeholder">总览内容区域</div>
+                        </div>
+                        <div id="tab-details" class="operation-panel">
+                            <div class="operation-panel-placeholder">详细信息内容区域</div>
+                        </div>
+                        <div id="tab-permissions" class="operation-panel">
+                            <div class="operation-panel-placeholder">静态权限内容区域</div>
+                        </div>
+                        <div id="tab-services" class="operation-panel">
+                            <div class="operation-panel-placeholder">第三方服务内容区域</div>
+                        </div>
+                        <div id="tab-source" class="operation-panel">
+                            <div class="operation-panel-placeholder">源码分析内容区域</div>
+                        </div>
+                        <div id="tab-sensitive" class="operation-panel">
+                            <div class="operation-panel-placeholder">敏感信息内容区域</div>
+                        </div>
+                        <div id="tab-frida" class="operation-panel">
+                            <div class="operation-panel-placeholder">Frida脚本内容区域</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>

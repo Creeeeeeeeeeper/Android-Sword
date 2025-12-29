@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Android Screen Mirror - 主页</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧栏 -->
+        <div class="left-panel">
+            <div class="image-container">
+                <img src="../../assets/Androidrobot.png" alt="Android Robot" class="robot-image">
+                <div class="left-title">欢迎来到Android Sword</div>
+                <div id="create-case">+ 创建案件</div>
+            </div>
+        </div>
+
+        <!-- 右侧栏 -->
+        <div class="right-panel">
+            <!-- 右上角按钮组 -->
+            <div class="button-group">
+                <span class="top-btn">设置</span>
+                <span class="top-btn">关于</span>
+            </div>
+
+            <!-- 右侧内容框 -->
+            <div class="content-box">
+                <!-- 已创建案件标题 -->
+                <div class="cases-header">
+                    <h2>已创建案件 <span class="case-count">(<span id="case-total">0</span>)</span></h2>
+                </div>
+
+                <!-- 表头行 -->
+                <div class="cases-table-header">
+                    <div class="table-cell"></div>
+                    <div class="table-cell cell-name">案件名称</div>
+                    <div class="table-cell cell-number">案件编号</div>
+                    <div class="table-cell cell-evidence">证据列表</div>
+                    <div class="table-cell cell-investigator">办案人员</div>
+                    <div class="table-cell cell-created">创建时间</div>
+                    <div class="table-cell cell-action">操作</div>
+                </div>
+
+                <!-- 案件列表 -->
+                <div id="cases-list" class="cases-list">
+                    <!-- 案件行会动态添加到这里 -->
+                </div>
+
+                <!-- 空状态提示 -->
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <div class="empty-state-content">
+                        <!-- <div class="empty-state-icon">📋</div> -->
+                        <div class="empty-state-text">还未创建过案件</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建案件对话框蒙层 -->
+    <div id="case-modal" class="modal">
+        <div class="modal-content">
+            <h2>创建案件</h2>
+
+            <div class="form-group">
+                <label>案件名称 <span class="required">*</span></label>
+                <input type="text" id="case-name" placeholder="请输入案件名称" class="form-input" autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label>案件编号 <span class="required">*</span></label>
+                <input type="text" id="case-number" placeholder="自动生成，可自定义修改" class="form-input" maxlength="20" autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label>保存位置</label>
+                <input type="text" id="case-path" placeholder="case文件夹中的案件编号目录" class="form-input" disabled autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label>调查人员</label>
+                <input type="text" id="case-investigator" placeholder="请输入调查人员名称" class="form-input" autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label>案件描述</label>
+                <textarea id="case-description" placeholder="请输入案件描述" class="form-input form-textarea" autocomplete="off"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>备注</label>
+                <textarea id="case-remark" placeholder="请输入备注" class="form-input form-textarea" autocomplete="off"></textarea>
+            </div>
+
+            <div class="modal-buttons">
+                <button id="cancel-btn" class="btn-cancel">取消</button>
+                <button id="confirm-btn" class="btn-confirm">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑案件对话框蒙层 -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <h2>编辑案件</h2>
+
+            <div class="form-group">
+                <label>案件名称 <span class="required">*</span></label>
+                <input type="text" id="edit-case-name" placeholder="请输入案件名称" class="form-input" autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label>案件编号</label>
+                <input type="text" id="edit-case-number" placeholder="案件编号（不可修改）" class="form-input" disabled autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label>保存位置</label>
+                <input type="text" id="edit-case-path" placeholder="保存位置（不可修改）" class="form-input" disabled autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label>调查人员</label>
+                <input type="text" id="edit-case-investigator" placeholder="请输入调查人员名称" class="form-input" autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label>案件描述</label>
+                <textarea id="edit-case-description" placeholder="请输入案件描述" class="form-input form-textarea" autocomplete="off"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>备注</label>
+                <textarea id="edit-case-remark" placeholder="请输入备注" class="form-input form-textarea" autocomplete="off"></textarea>
+            </div>
+
+            <div class="modal-buttons">
+                <button id="edit-cancel-btn" class="btn-cancel">取消</button>
+                <button id="edit-confirm-btn" class="btn-confirm">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 关于对话框蒙层 -->
+    <div id="about-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <h2>关于</h2>
+            <div class="about-info">
+                <div class="about-item">
+                    <span class="about-label">软件名称：</span>
+                    <span class="about-value">Android Sword</span>
+                </div>
+                <div class="about-item">
+                    <span class="about-label">版本：</span>
+                    <span class="about-value">1.0.0</span>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button id="about-close-btn" class="btn-confirm">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置对话框蒙层 -->
+    <div id="settings-modal" class="modal">
+        <div class="settings-modal-content">
+            <div class="settings-header">
+                <h2>设置</h2>
+                <button id="settings-close-btn" class="settings-close-btn">×</button>
+            </div>
+            <div class="settings-body">
+                <!-- 左侧大项菜单 -->
+                <div class="settings-sidebar">
+                    <div class="settings-menu-item active" data-section="adb">ADB</div>
+                    <div class="settings-menu-item" data-section="scrcpy">Scrcpy</div>
+                </div>
+                <!-- 右侧分项内容 -->
+                <div class="settings-content">
+                    <!-- ADB 设置 -->
+                    <div id="settings-adb" class="settings-section active">
+                        <div class="settings-section-title">ADB 设置</div>
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-label">自动连接手机</div>
+                                <div class="settings-item-desc">进入操作页面时自动检测并连接手机</div>
+                            </div>
+                            <label class="settings-switch">
+                                <input type="checkbox" id="setting-auto-connect" checked>
+                                <span class="settings-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <!-- Scrcpy 设置 -->
+                    <div id="settings-scrcpy" class="settings-section">
+                        <div class="settings-section-title">Scrcpy 设置</div>
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-label">最大分辨率</div>
+                                <div class="settings-item-desc">视频最大分辨率（宽或高的较大值）</div>
+                            </div>
+                            <input type="number" id="setting-max-size" class="settings-input" placeholder="1920" min="480" max="4096">
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-label">视频码率</div>
+                                <div class="settings-item-desc">视频码率（bps），默认4000000</div>
+                            </div>
+                            <input type="number" id="setting-bit-rate" class="settings-input" placeholder="4000000" min="500000" max="50000000">
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-label">最大帧率</div>
+                                <div class="settings-item-desc">最大FPS，默认60</div>
+                            </div>
+                            <input type="number" id="setting-max-fps" class="settings-input" placeholder="60" min="1" max="120">
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-label">视频端口</div>
+                                <div class="settings-item-desc">Scrcpy服务器视频端口，默认27183</div>
+                            </div>
+                            <input type="number" id="setting-video-port" class="settings-input" placeholder="27183" min="1024" max="65535">
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-label">控制端口</div>
+                                <div class="settings-item-desc">Scrcpy服务器控制端口，默认27184</div>
+                            </div>
+                            <input type="number" id="setting-control-port" class="settings-input" placeholder="27184" min="1024" max="65535">
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-label">IDR帧间隔</div>
+                                <div class="settings-item-desc">Intra-refresh周期（秒），默认1</div>
+                            </div>
+                            <input type="number" id="setting-intra-refresh" class="settings-input" placeholder="1" min="1" max="10">
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-label">局域网访问</div>
+                                <div class="settings-item-desc">监听所有网络接口（0.0.0.0），允许局域网访问</div>
+                            </div>
+                            <label class="settings-switch">
+                                <input type="checkbox" id="setting-public">
+                                <span class="settings-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 顶部弹出提示框 -->
+    <div id="toast-container"></div>
+
+    <script src="main.js"></script>
+</body>
+</html>
