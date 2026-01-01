@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Android Screen Mirror - 操作页面</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="vs2015.min.css">
+    <script src="highlight.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -65,7 +67,46 @@
                     <!-- 第四行：操作区内容 -->
                     <div id="apk-operation-content" class="apk-operation-content">
                         <div id="tab-overview" class="operation-panel active">
-                            <div class="operation-panel-placeholder">总览内容区域</div>
+                            <div class="overview-container">
+                                <!-- 左侧列 -->
+                                <div class="overview-column overview-left">
+                                    <!-- 权限统计摘要 -->
+                                    <div class="overview-section overview-permissions" id="overview-permissions">
+                                        <div class="overview-section-header">
+                                            <span class="overview-section-title">权限统计</span>
+                                            <span class="overview-link" data-target="permissions">查看详情 →</span>
+                                        </div>
+                                        <div class="overview-section-content" id="overview-permissions-content">
+                                            <div class="overview-placeholder">加载中...</div>
+                                        </div>
+                                    </div>
+                                    <!-- 签名方案摘要 -->
+                                    <div class="overview-section overview-signature" id="overview-signature">
+                                        <div class="overview-section-header">
+                                            <span class="overview-section-title">签名信息</span>
+                                            <span class="overview-link" data-target="details">查看详情 →</span>
+                                        </div>
+                                        <div class="overview-section-content" id="overview-signature-content">
+                                            <div class="overview-placeholder">加载中...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- 右侧列：IP检测 -->
+                                <div class="overview-column overview-right">
+                                    <div class="overview-section overview-ip" id="overview-ip">
+                                        <div class="overview-section-header">
+                                            <span class="overview-section-title">疑似IP地址</span>
+                                            <div class="overview-ip-header-right">
+                                                <span class="overview-ip-status" id="overview-ip-status"></span>
+                                                <button class="overview-ip-rescan-btn" id="overview-ip-rescan-btn" style="display: none;">重新检测</button>
+                                            </div>
+                                        </div>
+                                        <div class="overview-section-content overview-ip-content" id="overview-ip-content">
+                                            <div class="overview-placeholder">加载中...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div id="tab-details" class="operation-panel">
                             <div class="operation-panel-placeholder">详细信息内容区域</div>
@@ -77,14 +118,110 @@
                             <div class="operation-panel-placeholder">第三方服务内容区域</div>
                         </div>
                         <div id="tab-source" class="operation-panel">
-                            <div class="operation-panel-placeholder">源码分析内容区域</div>
+                            <div class="source-modules">
+                                <div class="source-module-card" id="jadx-viewer-btn">
+                                    <div class="source-module-icon">📁</div>
+                                    <div class="source-module-title">JADX源码查看</div>
+                                    <div class="source-module-desc">浏览反编译后的Java源码和资源文件</div>
+                                </div>
+                                <!-- 更多模块可以在这里添加 -->
+                            </div>
                         </div>
                         <div id="tab-sensitive" class="operation-panel">
-                            <div class="operation-panel-placeholder">敏感信息内容区域</div>
+                            <div class="sensitive-container">
+                                <!-- 左侧敏感信息列表 -->
+                                <div class="sensitive-left">
+                                    <div class="sensitive-toolbar">
+                                        <select id="sensitive-category" class="sensitive-select">
+                                            <option value="all">全部</option>
+                                            <option value="url">URL</option>
+                                            <option value="ip">IP地址</option>
+                                            <option value="access_key">AccessKey</option>
+                                            <option value="number">纯数字字符串</option>
+                                        </select>
+                                        <select id="sensitive-page-size" class="sensitive-select">
+                                            <option value="20">每页20条</option>
+                                            <option value="50">每页50条</option>
+                                            <option value="100">每页100条</option>
+                                        </select>
+                                        <button id="sensitive-scan-btn" class="sensitive-scan-btn">扫描</button>
+                                        <button id="sensitive-rescan-btn" class="sensitive-rescan-btn">重新扫描</button>
+                                    </div>
+                                    <div class="sensitive-stats" id="sensitive-stats"></div>
+                                    <div class="sensitive-list" id="sensitive-list">
+                                        <div class="sensitive-placeholder">点击扫描按钮开始分析敏感信息</div>
+                                    </div>
+                                    <div class="sensitive-pagination" id="sensitive-pagination"></div>
+                                </div>
+                                <!-- 分割线 -->
+                                <div class="sensitive-resizer" id="sensitive-resizer"></div>
+                                <!-- 右侧代码预览 -->
+                                <div class="sensitive-right">
+                                    <div class="sensitive-code-path" id="sensitive-code-path"></div>
+                                    <div class="sensitive-code-content" id="sensitive-code-content">
+                                        <div class="sensitive-placeholder">选择左侧敏感信息查看代码位置</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div id="tab-frida" class="operation-panel">
                             <div class="operation-panel-placeholder">Frida脚本内容区域</div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast容器 -->
+    <div id="toast-container"></div>
+
+    <!-- JADX源码查看蒙层 -->
+    <div id="jadx-overlay" class="fullscreen-overlay hidden">
+        <div class="overlay-container">
+            <div class="overlay-header">
+                <div class="overlay-title">JADX源码查看</div>
+                <div class="overlay-path" id="jadx-current-path"></div>
+                <div class="overlay-actions">
+                    <button id="jadx-search-btn" class="overlay-btn" title="搜索 (Ctrl+F)">🔍 搜索</button>
+                    <button id="jadx-close-btn" class="overlay-close-btn" title="关闭">✕</button>
+                </div>
+            </div>
+            <div class="overlay-content">
+                <div class="jadx-sidebar" id="jadx-sidebar">
+                    <div class="jadx-tree" id="jadx-tree">
+                        <div class="jadx-loading">加载文件树中...</div>
+                    </div>
+                </div>
+                <div class="jadx-resizer" id="jadx-resizer"></div>
+                <div class="jadx-main" id="jadx-main">
+                    <div class="jadx-placeholder">选择左侧文件查看源码</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 搜索蒙层 -->
+    <div id="search-overlay" class="fullscreen-overlay hidden">
+        <div class="search-overlay-container">
+            <div class="search-header">
+                <div class="search-input-wrapper">
+                    <input type="text" id="search-input" class="search-input" placeholder="搜索内容..." autofocus>
+                    <span class="search-count" id="search-count"></span>
+                </div>
+                <button id="search-close-btn" class="overlay-close-btn" title="关闭">✕</button>
+            </div>
+            <div class="search-content">
+                <div class="search-results-panel" id="search-results-panel">
+                    <div class="search-results-list" id="search-results-list">
+                        <div class="search-placeholder">输入搜索内容</div>
+                    </div>
+                </div>
+                <div class="search-resizer" id="search-resizer"></div>
+                <div class="search-preview-panel" id="search-preview-panel">
+                    <div class="search-preview-path" id="search-preview-path"></div>
+                    <div class="search-preview-content" id="search-preview-content">
+                        <div class="search-placeholder">选择左侧结果预览</div>
                     </div>
                 </div>
             </div>

@@ -686,6 +686,13 @@ document.addEventListener('DOMContentLoaded', function() {
             intraRefresh: null,
             logLevel: '',
             public: false
+        },
+        source: {
+            hexPageSize: 64  // 默认64KB
+        },
+        sensitive: {
+            urlWhitelist: [],
+            ipWhitelist: []
         }
     };
 
@@ -767,6 +774,29 @@ document.addEventListener('DOMContentLoaded', function() {
         const publicCheckbox = document.getElementById('setting-public');
         if (publicCheckbox) {
             publicCheckbox.checked = scrcpy.public || false;
+        }
+
+        // 源码分析 设置
+        const source = currentSettings.source || {};
+
+        const hexPageSizeInput = document.getElementById('setting-hex-page-size');
+        if (hexPageSizeInput) {
+            hexPageSizeInput.value = source.hexPageSize || '';
+        }
+
+        // 敏感信息 设置
+        const sensitive = currentSettings.sensitive || {};
+
+        const urlWhitelistTextarea = document.getElementById('setting-url-whitelist');
+        if (urlWhitelistTextarea) {
+            const urlList = sensitive.urlWhitelist || [];
+            urlWhitelistTextarea.value = urlList.join('\n');
+        }
+
+        const ipWhitelistTextarea = document.getElementById('setting-ip-whitelist');
+        if (ipWhitelistTextarea) {
+            const ipList = sensitive.ipWhitelist || [];
+            ipWhitelistTextarea.value = ipList.join('\n');
         }
     }
 
@@ -850,6 +880,61 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             currentSettings.scrcpy.public = this.checked;
             await saveSettings();
+        });
+    }
+
+    // 源码分析设置变更 - Hex页面大小
+    const hexPageSizeInput = document.getElementById('setting-hex-page-size');
+    if (hexPageSizeInput) {
+        hexPageSizeInput.addEventListener('change', async function() {
+            if (!currentSettings.source) {
+                currentSettings.source = {};
+            }
+            const value = this.value ? parseInt(this.value, 10) : null;
+            currentSettings.source.hexPageSize = value;
+            await saveSettings();
+        });
+    }
+
+    // 敏感信息设置变更 - URL白名单
+    const urlWhitelistTextarea = document.getElementById('setting-url-whitelist');
+    if (urlWhitelistTextarea) {
+        urlWhitelistTextarea.addEventListener('change', async function() {
+            if (!currentSettings.sensitive) {
+                currentSettings.sensitive = {};
+            }
+            // 将文本按行分割，过滤空行，去除首尾空格
+            const lines = this.value.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+            currentSettings.sensitive.urlWhitelist = lines;
+            await saveSettings();
+            window.toast.show({
+                text: 'URL白名单已保存',
+                color: 'success',
+                duration: 2000
+            });
+        });
+    }
+
+    // 敏感信息设置变更 - IP白名单
+    const ipWhitelistTextarea = document.getElementById('setting-ip-whitelist');
+    if (ipWhitelistTextarea) {
+        ipWhitelistTextarea.addEventListener('change', async function() {
+            if (!currentSettings.sensitive) {
+                currentSettings.sensitive = {};
+            }
+            // 将文本按行分割，过滤空行，去除首尾空格
+            const lines = this.value.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+            currentSettings.sensitive.ipWhitelist = lines;
+            await saveSettings();
+            window.toast.show({
+                text: 'IP白名单已保存',
+                color: 'success',
+                duration: 2000
+            });
         });
     }
 

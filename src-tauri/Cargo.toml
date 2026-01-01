@@ -31,6 +31,11 @@ env_logger = "0.11"
 regex = "1"
 tauri-plugin-shell = "2"
 encoding_rs = "0.8"
+md5 = "0.7"
+sha1 = "0.10"
+sha2 = "0.10"
+rayon = "1.10"
+memmap2 = "0.9"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["winuser", "processthreadsapi"] }

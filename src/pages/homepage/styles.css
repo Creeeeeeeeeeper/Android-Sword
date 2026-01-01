@@ -957,3 +957,59 @@ html body {
     background: #3a3a3a;
     color: #ffffff;
 }
+
+/* 设置垂直布局项 */
+.settings-item-vertical {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.settings-item-vertical .settings-item-info {
+    width: 100%;
+}
+
+/* 设置文本域 */
+.settings-textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 13px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    line-height: 1.5;
+    resize: vertical;
+    outline: none;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+.settings-textarea:focus {
+    border-color: rgba(100, 150, 255, 0.5);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.settings-textarea::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* 设置文本域滚动条 */
+.settings-textarea::-webkit-scrollbar {
+    width: 6px;
+}
+
+.settings-textarea::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.settings-textarea::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.settings-textarea::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
