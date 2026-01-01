@@ -2,7 +2,7 @@
 
 <p align="center">致力于打造一款开源的apk一体化分析软件</p>
 
-<img src="./README/Androidrobot.png" width="200">
+<p align="center"><img src="./README/Androidrobot.png" width="200">
 
 目前有的模块（不是很完善）：
 
