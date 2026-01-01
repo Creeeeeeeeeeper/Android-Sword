@@ -1,6 +1,6 @@
 # Android Sword
 
-<p align="center">致力于打造一款开源的apk一体化分析软件</p>
+<p align="center">一款开源的apk一体化分析工具</p>
 
 <p align="center"><img src="./README/Androidrobot.png" width="200">
 
