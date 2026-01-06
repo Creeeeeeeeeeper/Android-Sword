@@ -1,0 +1,58 @@
+{
+    "scripts": [
+        {
+            "id": "app_info",
+            "filename": "app_info.js",
+            "name": "应用信息测试",
+            "description": "获取当前应用的基本信息、设备信息、当前Activity，并监控Activity切换事件",
+            "category": "monitor",
+            "enabled": true
+        },
+        {
+            "id": "root",
+            "filename": "root.js",
+            "name": "Root检测绕过",
+            "description": "绕过应用的Root检测，包括su文件检测、Runtime.exec检测、Build.TAGS检测等",
+            "category": "bypass",
+            "enabled": true
+        },
+        {
+            "id": "encrypt",
+            "filename": "encrypt.js",
+            "name": "加密算法Hook",
+            "description": "Hook常见加密算法(MD5/SHA/AES/DES/RSA/HMAC等)，输出加密前后的数据",
+            "category": "crypto",
+            "enabled": true
+        },
+        {
+            "id": "java_equals",
+            "filename": "java_equals.js",
+            "name": "Java字符串比较",
+            "description": "Hook Java层String.equals/equalsIgnoreCase/contentEquals方法，监控字符串比较",
+            "category": "monitor",
+            "enabled": true
+        },
+        {
+            "id": "so_equals",
+            "filename": "so_equals.js",
+            "name": "Native strcmp",
+            "description": "Hook Native层strcmp函数，监控C/C++层字符串比较",
+            "category": "monitor",
+            "enabled": true
+        },
+        {
+            "id": "sqlcrypto",
+            "filename": "sqlcrypto.js",
+            "name": "SQLCipher/WCDB",
+            "description": "Hook SQLCipher和微信WCDB加密数据库，获取数据库密码和SQL语句",
+            "category": "database",
+            "enabled": true
+        }
+    ],
+    "categories": {
+        "bypass": "绕过检测",
+        "crypto": "加密分析",
+        "monitor": "监控Hook",
+        "database": "数据库"
+    }
+}

@@ -4,7 +4,7 @@ use tauri::{AppHandle, Runtime, Manager};
 use std::env;
 use std::sync::Mutex;
 use std::process::{Child, Command, Stdio};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::{BufRead, BufReader, Read};
 use std::sync::{Arc, mpsc};
 use md5;
@@ -14,9 +14,25 @@ use serde_json::json;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
+// Frida进程输出缓冲结构
+struct FridaOutputBuffer {
+    lines: Vec<FridaOutputLine>,
+    finished: bool,
+}
+
+#[derive(serde::Serialize, Clone)]
+struct FridaOutputLine {
+    content: String,
+    #[serde(rename = "type")]
+    line_type: String,
+}
+
 // 应用状态结构体
 struct AppState {
     scrcpy_processes: Mutex<HashMap<String, Child>>,
+    capture_processes: Mutex<HashMap<String, Child>>,
+    frida_processes: Mutex<HashMap<String, Child>>,
+    frida_outputs: Mutex<HashMap<String, FridaOutputBuffer>>,
 }
 
 // 权限信息结构体
@@ -76,6 +92,31 @@ fn write_binary_file(filename: &str, data: Vec<u8>) -> Result<String, String> {
     match fs::write(filename, data) {
         Ok(_) => Ok("s".to_string()),
         Err(e) => Err(e.to_string()),
+    }
+}
+
+// 复制文件（用于大文件复制，避免通过JS传输）
+#[tauri::command]
+fn copy_file(source: &str, destination: &str) -> Result<String, String> {
+    match fs::copy(source, destination) {
+        Ok(_) => Ok("s".to_string()),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+// 选择APK文件对话框
+#[tauri::command]
+async fn select_apk_file(app: AppHandle<impl Runtime>) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let file_path = app.dialog()
+        .file()
+        .add_filter("APK文件", &["apk"])
+        .blocking_pick_file();
+
+    match file_path {
+        Some(path) => Ok(Some(path.to_string())),
+        None => Ok(None),
     }
 }
 
@@ -334,6 +375,38 @@ async fn install_apk(apk_path: String) -> Result<String, String> {
     result
 }
 
+// 检查APK是否已安装在设备上
+#[tauri::command]
+async fn check_apk_installed(package_name: String) -> Result<serde_json::Value, String> {
+    let current_dir = env::current_dir().map_err(|e| e.to_string())?;
+    let adb_exe = current_dir.join("adb\\adb.exe");
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut cmd = Command::new(&adb_exe);
+        cmd.args(&["shell", "pm", "list", "packages", &package_name]);
+
+        #[cfg(target_os = "windows")]
+        {
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            cmd.creation_flags(CREATE_NO_WINDOW);
+        }
+
+        let output = cmd.output().map_err(|e| e.to_string())?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+
+        // 检查是否包含精确的包名
+        let is_installed = stdout.lines().any(|line| {
+            line.trim() == format!("package:{}", package_name)
+        });
+
+        Ok::<bool, String>(is_installed)
+    }).await.map_err(|e| e.to_string())??;
+
+    Ok(json!({
+        "installed": result
+    }))
+}
+
 // 检查ADB设备
 #[tauri::command]
 fn check_adb_devices() -> Result<String, String> {
@@ -528,6 +601,61 @@ fn is_scrcpy_ready(caseNumber: &str, state: tauri::State<AppState>) -> Result<bo
     Ok(processes.contains_key(caseNumber))
 }
 
+// 辅助函数：带超时执行命令（不等待结果，fire-and-forget）
+#[cfg(target_os = "windows")]
+fn run_command_fire_and_forget(mut cmd: Command) {
+    match cmd.spawn() {
+        Ok(_child) => {
+            // 不等待，让进程在后台运行
+            // 注意：这里不调用 wait()，进程会成为孤儿进程，由系统接管
+        }
+        Err(e) => {
+            eprintln!("启动命令失败: {}", e);
+        }
+    }
+}
+
+// 辅助函数：带超时执行命令
+#[cfg(target_os = "windows")]
+fn run_command_with_timeout(mut cmd: Command, timeout_ms: u64) -> bool {
+    match cmd.spawn() {
+        Ok(mut child) => {
+            // 使用循环检查进程状态，实现超时
+            let start = std::time::Instant::now();
+            let timeout = std::time::Duration::from_millis(timeout_ms);
+
+            loop {
+                match child.try_wait() {
+                    Ok(Some(_status)) => {
+                        // 进程已结束
+                        return true;
+                    }
+                    Ok(None) => {
+                        // 进程还在运行，检查超时
+                        if start.elapsed() > timeout {
+                            eprintln!("命令执行超时，强制终止");
+                            let _ = child.kill();
+                            let _ = child.wait();
+                            return false;
+                        }
+                        // 短暂休眠避免忙等待
+                        std::thread::sleep(std::time::Duration::from_millis(50));
+                    }
+                    Err(e) => {
+                        eprintln!("检查进程状态失败: {}", e);
+                        let _ = child.kill();
+                        return false;
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("启动命令失败: {}", e);
+            false
+        }
+    }
+}
+
 // 清理所有残留的adb和scrcpy进程
 #[tauri::command]
 fn cleanup_residual_processes() -> Result<String, String> {
@@ -547,6 +675,91 @@ fn cleanup_residual_processes() -> Result<String, String> {
             .creation_flags(CREATE_NO_WINDOW);
         let _ = cmd2.output();
 
+        // 杀死所有残留的python抓包进程
+        let mut cmd3 = Command::new("taskkill");
+        cmd3.args(&["/F", "/IM", "python.exe"])
+            .creation_flags(CREATE_NO_WINDOW);
+        let _ = cmd3.output();
+
+        // 在后台线程中异步清理设备上的frida-server，不阻塞主流程
+        std::thread::spawn(move || {
+            let current_dir = match std::env::current_dir() {
+                Ok(dir) => dir,
+                Err(_) => return,
+            };
+
+            let adb_exe = current_dir.join("adb").join("adb.exe");
+            if !adb_exe.exists() {
+                return;
+            }
+
+            // 启动adb服务（带超时，1秒）
+            let mut adb_start = Command::new(&adb_exe);
+            adb_start.arg("start-server")
+                .creation_flags(CREATE_NO_WINDOW);
+            run_command_with_timeout(adb_start, 1000);
+
+            // 短暂等待
+            std::thread::sleep(std::time::Duration::from_millis(200));
+
+            // 快速检查是否有设备连接（超时500ms）
+            let mut check_devices = Command::new(&adb_exe);
+            check_devices.args(&["devices"])
+                .creation_flags(CREATE_NO_WINDOW);
+
+            // 使用spawn + 超时检查，而不是阻塞的output()
+            let has_device = match check_devices.spawn() {
+                Ok(mut child) => {
+                    let start = std::time::Instant::now();
+                    loop {
+                        match child.try_wait() {
+                            Ok(Some(status)) => {
+                                if status.success() {
+                                    // 进程成功结束，但我们没有获取输出
+                                    // 简单假设有设备（因为adb server启动了）
+                                    break true;
+                                }
+                                break false;
+                            }
+                            Ok(None) => {
+                                if start.elapsed() > std::time::Duration::from_millis(500) {
+                                    let _ = child.kill();
+                                    let _ = child.wait();
+                                    break false;
+                                }
+                                std::thread::sleep(std::time::Duration::from_millis(50));
+                            }
+                            Err(_) => {
+                                let _ = child.kill();
+                                break false;
+                            }
+                        }
+                    }
+                }
+                Err(_) => false
+            };
+
+            if has_device {
+                // 使用 fire-and-forget 方式发送 kill 命令，不等待结果
+                // 方式1: 使用 su -c pkill
+                let mut adb_kill = Command::new(&adb_exe);
+                adb_kill.args(&["shell", "su", "-c", "pkill -9 frida-server"])
+                    .creation_flags(CREATE_NO_WINDOW);
+                run_command_fire_and_forget(adb_kill);
+
+                // 方式2: 使用 su -c killall
+                let mut adb_kill2 = Command::new(&adb_exe);
+                adb_kill2.args(&["shell", "su", "-c", "killall frida-server"])
+                    .creation_flags(CREATE_NO_WINDOW);
+                run_command_fire_and_forget(adb_kill2);
+
+                eprintln!("已发送frida-server清理命令");
+            } else {
+                eprintln!("没有检测到已连接的设备，跳过frida-server清理");
+            }
+        });
+
+        // 立即返回，不等待后台线程
         Ok("cleaned".to_string())
     }
 
@@ -560,6 +773,32 @@ fn cleanup_residual_processes() -> Result<String, String> {
         let _ = Command::new("pkill")
             .args(&["-f", "scrcpy"])
             .output();
+
+        let _ = Command::new("pkill")
+            .args(&["-f", "python"])
+            .output();
+
+        // 在后台线程中异步清理frida-server
+        std::thread::spawn(|| {
+            if let Ok(output) = Command::new("adb").args(&["devices"]).output() {
+                let output_str = String::from_utf8_lossy(&output.stdout);
+                let has_device = output_str.lines()
+                    .skip(1)
+                    .any(|line| !line.trim().is_empty() && line.contains("device"));
+
+                if has_device {
+                    let _ = Command::new("adb")
+                        .args(&["shell", "su", "-c", "pkill -9 frida-server"])
+                        .spawn();
+
+                    let _ = Command::new("adb")
+                        .args(&["shell", "su", "-c", "killall frida-server"])
+                        .spawn();
+
+                    eprintln!("已发送frida-server清理命令");
+                }
+            }
+        });
 
         Ok("cleaned".to_string())
     }
@@ -603,6 +842,10 @@ fn get_apk_info(apk_dir: String) -> Result<serde_json::Value, String> {
     let mut app_name = info.get("originalName").and_then(|v| v.as_str()).unwrap_or("未知应用").to_string();
     let mut package_name = String::new();
     let mut version_name = String::new();
+    let mut version_code = String::new();
+    let mut min_sdk = String::new();
+    let mut target_sdk = String::new();
+    let mut main_activity = String::new();
     let mut icon_ref = String::new();
 
     if manifest_path.exists() {
@@ -624,28 +867,87 @@ fn get_apk_info(apk_dir: String) -> Result<serde_json::Value, String> {
                 }
             }
 
-            // 获取label
-            if let Some(start) = manifest_content.find("android:label=\"") {
-                let start = start + 15;
+            // 获取versionCode
+            if let Some(start) = manifest_content.find("android:versionCode=\"") {
+                let start = start + 21;
                 if let Some(end) = manifest_content[start..].find("\"") {
-                    let label = &manifest_content[start..start+end];
-                    if label.starts_with("@string/") {
-                        // 从strings.xml解析字符串资源
-                        let string_name = &label[8..]; // 去掉 "@string/" 前缀
-                        if let Some(resolved_name) = resolve_string_resource(&jadx_path, string_name) {
-                            app_name = resolved_name;
-                        }
-                    } else if !label.starts_with("@") {
-                        app_name = label.to_string();
-                    }
+                    version_code = manifest_content[start..start+end].to_string();
                 }
             }
 
-            // 获取icon引用（如 @mipmap/ic_launcher 或 @drawable/icon）
-            if let Some(start) = manifest_content.find("android:icon=\"@") {
-                let start = start + 15;
+            // 获取minSdkVersion
+            if let Some(start) = manifest_content.find("android:minSdkVersion=\"") {
+                let start = start + 23;
                 if let Some(end) = manifest_content[start..].find("\"") {
-                    icon_ref = manifest_content[start..start+end].to_string();
+                    min_sdk = manifest_content[start..start+end].to_string();
+                }
+            }
+
+            // 获取targetSdkVersion
+            if let Some(start) = manifest_content.find("android:targetSdkVersion=\"") {
+                let start = start + 26;
+                if let Some(end) = manifest_content[start..].find("\"") {
+                    target_sdk = manifest_content[start..start+end].to_string();
+                }
+            }
+
+            // 获取入口Activity（带有MAIN和LAUNCHER的activity）
+            // 查找包含android.intent.action.MAIN的activity
+            let mut pos = 0;
+            while let Some(activity_start) = manifest_content[pos..].find("<activity") {
+                let activity_start = pos + activity_start;
+                // 找到这个activity标签的结束位置
+                if let Some(activity_end) = manifest_content[activity_start..].find("</activity>") {
+                    let activity_end = activity_start + activity_end + 11;
+                    let activity_block = &manifest_content[activity_start..activity_end];
+
+                    // 检查是否包含MAIN action和LAUNCHER category
+                    if activity_block.contains("android.intent.action.MAIN") &&
+                       activity_block.contains("android.intent.category.LAUNCHER") {
+                        // 提取activity的name属性
+                        if let Some(name_start) = activity_block.find("android:name=\"") {
+                            let name_start = name_start + 14;
+                            if let Some(name_end) = activity_block[name_start..].find("\"") {
+                                main_activity = activity_block[name_start..name_start+name_end].to_string();
+                                break;
+                            }
+                        }
+                    }
+                    pos = activity_end;
+                } else {
+                    break;
+                }
+            }
+
+            // 获取 <application> 标签的内容，从中提取 label 和 icon
+            if let Some(app_start) = manifest_content.find("<application") {
+                // 找到 <application 标签的结束位置（第一个 >）
+                let app_tag_end = manifest_content[app_start..].find('>').map(|p| app_start + p).unwrap_or(manifest_content.len());
+                let app_tag = &manifest_content[app_start..app_tag_end];
+
+                // 从 <application> 标签中获取 label
+                if let Some(label_start) = app_tag.find("android:label=\"") {
+                    let label_start = label_start + 15;
+                    if let Some(label_end) = app_tag[label_start..].find("\"") {
+                        let label = &app_tag[label_start..label_start+label_end];
+                        if label.starts_with("@string/") {
+                            // 从strings.xml解析字符串资源
+                            let string_name = &label[8..]; // 去掉 "@string/" 前缀
+                            if let Some(resolved_name) = resolve_string_resource(&jadx_path, string_name) {
+                                app_name = resolved_name;
+                            }
+                        } else if !label.starts_with("@") {
+                            app_name = label.to_string();
+                        }
+                    }
+                }
+
+                // 从 <application> 标签中获取 icon 引用
+                if let Some(icon_start) = app_tag.find("android:icon=\"@") {
+                    let icon_start = icon_start + 15;
+                    if let Some(icon_end) = app_tag[icon_start..].find("\"") {
+                        icon_ref = app_tag[icon_start..icon_start+icon_end].to_string();
+                    }
                 }
             }
         }
@@ -675,6 +977,10 @@ fn get_apk_info(apk_dir: String) -> Result<serde_json::Value, String> {
         "appName": app_name,
         "packageName": package_name,
         "versionName": version_name,
+        "versionCode": version_code,
+        "minSdk": min_sdk,
+        "targetSdk": target_sdk,
+        "mainActivity": main_activity,
         "iconPath": icon_path
     }))
 }
@@ -683,8 +989,8 @@ fn get_apk_info(apk_dir: String) -> Result<serde_json::Value, String> {
 fn resolve_string_resource(jadx_path: &std::path::Path, string_name: &str) -> Option<String> {
     let res_path = jadx_path.join("resources").join("res");
 
-    // 尝试不同的values目录
-    let values_dirs = vec!["values", "values-zh", "values-zh-rCN", "values-en"];
+    // 尝试不同的values目录（优先中文）
+    let values_dirs = vec!["values-zh-rCN", "values-zh", "values", "values-en"];
 
     for values_dir in &values_dirs {
         let strings_path = res_path.join(values_dir).join("strings.xml");
@@ -1057,6 +1363,274 @@ fn calculate_file_hashes(file_path: &std::path::Path) -> Result<(String, String,
     Ok((md5_hash, sha1_hash, sha256_hash))
 }
 
+// 解析AndroidManifest.xml中的四大组件
+fn parse_android_components(manifest_content: &str) -> serde_json::Value {
+    use serde_json::json;
+
+    let mut activities: Vec<String> = Vec::new();
+    let mut services: Vec<String> = Vec::new();
+    let mut receivers: Vec<String> = Vec::new();
+    let mut providers: Vec<String> = Vec::new();
+
+    // 解析 Activity
+    let mut pos = 0;
+    while let Some(start) = manifest_content[pos..].find("<activity") {
+        let start = pos + start;
+        // 查找 android:name 属性
+        if let Some(tag_end) = manifest_content[start..].find('>') {
+            let tag_content = &manifest_content[start..start + tag_end];
+            if let Some(name_start) = tag_content.find("android:name=\"") {
+                let name_start = name_start + 14;
+                if let Some(name_end) = tag_content[name_start..].find("\"") {
+                    let name = tag_content[name_start..name_start + name_end].to_string();
+                    activities.push(name);
+                }
+            }
+            pos = start + tag_end;
+        } else {
+            break;
+        }
+    }
+
+    // 解析 Service
+    pos = 0;
+    while let Some(start) = manifest_content[pos..].find("<service") {
+        let start = pos + start;
+        if let Some(tag_end) = manifest_content[start..].find('>') {
+            let tag_content = &manifest_content[start..start + tag_end];
+            if let Some(name_start) = tag_content.find("android:name=\"") {
+                let name_start = name_start + 14;
+                if let Some(name_end) = tag_content[name_start..].find("\"") {
+                    let name = tag_content[name_start..name_start + name_end].to_string();
+                    services.push(name);
+                }
+            }
+            pos = start + tag_end;
+        } else {
+            break;
+        }
+    }
+
+    // 解析 Receiver (BroadcastReceiver)
+    pos = 0;
+    while let Some(start) = manifest_content[pos..].find("<receiver") {
+        let start = pos + start;
+        if let Some(tag_end) = manifest_content[start..].find('>') {
+            let tag_content = &manifest_content[start..start + tag_end];
+            if let Some(name_start) = tag_content.find("android:name=\"") {
+                let name_start = name_start + 14;
+                if let Some(name_end) = tag_content[name_start..].find("\"") {
+                    let name = tag_content[name_start..name_start + name_end].to_string();
+                    receivers.push(name);
+                }
+            }
+            pos = start + tag_end;
+        } else {
+            break;
+        }
+    }
+
+    // 解析 Provider (ContentProvider)
+    pos = 0;
+    while let Some(start) = manifest_content[pos..].find("<provider") {
+        let start = pos + start;
+        if let Some(tag_end) = manifest_content[start..].find('>') {
+            let tag_content = &manifest_content[start..start + tag_end];
+            if let Some(name_start) = tag_content.find("android:name=\"") {
+                let name_start = name_start + 14;
+                if let Some(name_end) = tag_content[name_start..].find("\"") {
+                    let name = tag_content[name_start..name_start + name_end].to_string();
+                    providers.push(name);
+                }
+            }
+            pos = start + tag_end;
+        } else {
+            break;
+        }
+    }
+
+    json!({
+        "activities": activities,
+        "services": services,
+        "receivers": receivers,
+        "providers": providers
+    })
+}
+
+// 从文件加载第三方服务特征库
+fn load_third_party_services_database(current_dir: &std::path::Path) -> Result<serde_json::Value, String> {
+    let db_path = current_dir.join("prefile").join("third_party_services.json");
+
+    if !db_path.exists() {
+        return Err("第三方服务特征库文件不存在".to_string());
+    }
+
+    let content = fs::read_to_string(&db_path)
+        .map_err(|e| format!("读取特征库文件失败: {}", e))?;
+
+    serde_json::from_str(&content)
+        .map_err(|e| format!("解析特征库JSON失败: {}", e))
+}
+
+// 分析第三方服务
+#[tauri::command]
+async fn analyze_third_party_services(apk_dir: String) -> Result<serde_json::Value, String> {
+    use serde_json::json;
+
+    let current_dir = env::current_dir().map_err(|e| e.to_string())?;
+    let apk_dir_path = current_dir.join(&apk_dir);
+    let jadx_path = apk_dir_path.join("jadx");
+    let sources_path = jadx_path.join("sources");
+    let cache_path = apk_dir_path.join("third_party_services.json");
+
+    // 检查缓存
+    if cache_path.exists() {
+        if let Ok(cache_content) = fs::read_to_string(&cache_path) {
+            if let Ok(cached_data) = serde_json::from_str::<serde_json::Value>(&cache_content) {
+                return Ok(cached_data);
+            }
+        }
+    }
+
+    if !sources_path.exists() {
+        return Ok(json!({
+            "success": false,
+            "message": "源码目录不存在，请先反编译APK"
+        }));
+    }
+
+    // 从文件加载特征库
+    let database = load_third_party_services_database(&current_dir)?;
+
+    // 扫描源码目录，收集所有包名
+    let mut found_packages: HashSet<String> = HashSet::new();
+    scan_packages_recursive(&sources_path, &sources_path, &mut found_packages);
+
+    // 匹配结果
+    let mut packers: Vec<serde_json::Value> = Vec::new();
+    let mut sdks: Vec<serde_json::Value> = Vec::new();
+    let mut forensics: Vec<serde_json::Value> = Vec::new();
+    let mut libraries: Vec<serde_json::Value> = Vec::new();
+
+    // 用于去重
+    let mut matched_names: HashSet<String> = HashSet::new();
+
+    // 匹配打包服务商
+    if let Some(packer_list) = database["packers"].as_array() {
+        for packer in packer_list {
+            if let Some(pkg) = packer["package"].as_str() {
+                let pkg_path = pkg.replace('.', "/");
+                for found_pkg in &found_packages {
+                    if found_pkg.starts_with(&pkg_path) || found_pkg.contains(&pkg_path) {
+                        let name = packer["name"].as_str().unwrap_or("未知").to_string();
+                        if !matched_names.contains(&format!("packer_{}", name)) {
+                            matched_names.insert(format!("packer_{}", name));
+                            packers.push(packer.clone());
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // 匹配SDK服务商
+    if let Some(sdk_list) = database["sdks"].as_array() {
+        for sdk in sdk_list {
+            if let Some(pkg) = sdk["package"].as_str() {
+                let pkg_path = pkg.replace('.', "/");
+                for found_pkg in &found_packages {
+                    if found_pkg.starts_with(&pkg_path) || found_pkg.contains(&pkg_path) {
+                        let name = sdk["name"].as_str().unwrap_or("未知").to_string();
+                        if !matched_names.contains(&format!("sdk_{}", name)) {
+                            matched_names.insert(format!("sdk_{}", name));
+                            sdks.push(sdk.clone());
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // 匹配调证值相关
+    if let Some(forensic_list) = database["forensics"].as_array() {
+        for forensic in forensic_list {
+            if let Some(pkg) = forensic["package"].as_str() {
+                let pkg_path = pkg.replace('.', "/");
+                for found_pkg in &found_packages {
+                    if found_pkg.starts_with(&pkg_path) || found_pkg.contains(&pkg_path) {
+                        let name = forensic["name"].as_str().unwrap_or("未知").to_string();
+                        if !matched_names.contains(&format!("forensic_{}", name)) {
+                            matched_names.insert(format!("forensic_{}", name));
+                            forensics.push(forensic.clone());
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // 匹配第三方库
+    if let Some(lib_list) = database["libraries"].as_array() {
+        for lib in lib_list {
+            if let Some(pkg) = lib["package"].as_str() {
+                let pkg_path = pkg.replace('.', "/");
+                for found_pkg in &found_packages {
+                    if found_pkg.starts_with(&pkg_path) || found_pkg.contains(&pkg_path) {
+                        let name = lib["name"].as_str().unwrap_or("未知").to_string();
+                        if !matched_names.contains(&format!("lib_{}", name)) {
+                            matched_names.insert(format!("lib_{}", name));
+                            libraries.push(lib.clone());
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    let result = json!({
+        "success": true,
+        "packers": packers,
+        "sdks": sdks,
+        "forensics": forensics,
+        "libraries": libraries,
+        "summary": {
+            "packersCount": packers.len(),
+            "sdksCount": sdks.len(),
+            "forensicsCount": forensics.len(),
+            "librariesCount": libraries.len()
+        }
+    });
+
+    // 保存缓存
+    if let Ok(json_str) = serde_json::to_string_pretty(&result) {
+        let _ = fs::write(&cache_path, &json_str);
+    }
+
+    Ok(result)
+}
+
+// 递归扫描包目录
+fn scan_packages_recursive(base_path: &std::path::Path, current_path: &std::path::Path, packages: &mut HashSet<String>) {
+    if let Ok(entries) = fs::read_dir(current_path) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                // 获取相对路径作为包名
+                if let Ok(relative) = path.strip_prefix(base_path) {
+                    let pkg_path = relative.to_string_lossy().replace('\\', "/");
+                    packages.insert(pkg_path);
+                }
+                // 递归扫描
+                scan_packages_recursive(base_path, &path, packages);
+            }
+        }
+    }
+}
+
 // 解析apksigner输出
 fn parse_apksigner_output(output: &str) -> serde_json::Value {
     use serde_json::json;
@@ -1172,8 +1746,35 @@ async fn get_apk_details(apk_dir: String) -> Result<serde_json::Value, String> {
     if details_cache_path.exists() {
         if let Ok(cache_content) = fs::read_to_string(&details_cache_path) {
             if let Ok(cached_data) = serde_json::from_str::<serde_json::Value>(&cache_content) {
-                eprintln!("从缓存读取APK详细信息: {}", details_cache_path.display());
-                return Ok(cached_data);
+                // 检查缓存是否包含有效的components字段
+                // 如果components存在但所有数组都为空，且AndroidManifest.xml存在，则需要重新分析
+                if let Some(components) = cached_data.get("components") {
+                    let activities = components.get("activities").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0);
+                    let services = components.get("services").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0);
+                    let receivers = components.get("receivers").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0);
+                    let providers = components.get("providers").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0);
+
+                    let total_components = activities + services + receivers + providers;
+
+                    // 如果组件不为空，直接返回缓存
+                    if total_components > 0 {
+                        eprintln!("从缓存读取APK详细信息: {}", details_cache_path.display());
+                        return Ok(cached_data);
+                    }
+
+                    // 如果组件为空，检查AndroidManifest.xml是否存在
+                    let manifest_path = apk_dir_path.join("jadx/resources/AndroidManifest.xml");
+                    if !manifest_path.exists() {
+                        // AndroidManifest.xml不存在，说明还没反编译完成，返回缓存的空数据
+                        eprintln!("AndroidManifest.xml不存在，返回缓存: {}", details_cache_path.display());
+                        return Ok(cached_data);
+                    }
+
+                    // AndroidManifest.xml存在但组件为空，需要重新分析
+                    eprintln!("缓存的components为空但AndroidManifest.xml存在，重新分析: {}", details_cache_path.display());
+                } else {
+                    eprintln!("缓存缺少components字段，重新分析: {}", details_cache_path.display());
+                }
             }
         }
     }
@@ -1252,6 +1853,31 @@ async fn analyze_apk_details(apk_path: &std::path::Path, current_dir: &std::path
         })
     };
 
+    // 解析四大组件
+    // 从apk_path获取apk目录，然后找到jadx目录下的AndroidManifest.xml
+    let apk_dir = apk_path.parent().unwrap_or(std::path::Path::new(""));
+    let manifest_path = apk_dir.join("jadx").join("resources").join("AndroidManifest.xml");
+
+    let components = if manifest_path.exists() {
+        if let Ok(manifest_content) = fs::read_to_string(&manifest_path) {
+            parse_android_components(&manifest_content)
+        } else {
+            json!({
+                "activities": [],
+                "services": [],
+                "receivers": [],
+                "providers": []
+            })
+        }
+    } else {
+        json!({
+            "activities": [],
+            "services": [],
+            "receivers": [],
+            "providers": []
+        })
+    };
+
     Ok(json!({
         "success": true,
         "hashes": {
@@ -1259,6 +1885,7 @@ async fn analyze_apk_details(apk_path: &std::path::Path, current_dir: &std::path
             "sha1": sha1_hash,
             "sha256": sha256_hash
         },
+        "components": components,
         "signature": signature_info
     }))
 }
@@ -2239,17 +2866,1041 @@ fn is_port_free(port: u16) -> bool {
     std::net::TcpListener::bind(("127.0.0.1", port)).is_ok()
 }
 
+// ===================== 网络抓包模块 =====================
+
+// 获取设备上安装的APP列表
+#[tauri::command]
+async fn get_device_apps() -> Result<serde_json::Value, String> {
+    let current_dir = env::current_dir().map_err(|e| e.to_string())?;
+    let adb_exe = current_dir.join("adb").join("adb.exe");
+
+    if !adb_exe.exists() {
+        return Err("ADB工具不存在".to_string());
+    }
+
+    // 获取第三方应用列表
+    let output = Command::new(&adb_exe)
+        .args(&["shell", "pm", "list", "packages", "-3"])
+        .creation_flags(0x08000000)
+        .output()
+        .map_err(|e| format!("执行ADB命令失败: {}", e))?;
+
+    if !output.status.success() {
+        return Err("获取APP列表失败，请确保设备已连接".to_string());
+    }
+
+    let output_str = String::from_utf8_lossy(&output.stdout);
+    let mut apps: Vec<serde_json::Value> = Vec::new();
+
+    for line in output_str.lines() {
+        if let Some(package) = line.strip_prefix("package:") {
+            let package = package.trim();
+            if !package.is_empty() {
+                // 获取应用名称
+                let label_output = Command::new(&adb_exe)
+                    .args(&["shell", "pm", "dump", package, "|", "grep", "-m1", "application-label:"])
+                    .creation_flags(0x08000000)
+                    .output();
+
+                let app_name = if let Ok(label_out) = label_output {
+                    let label_str = String::from_utf8_lossy(&label_out.stdout);
+                    label_str.lines()
+                        .find(|l| l.contains("application-label:"))
+                        .and_then(|l| l.strip_prefix("application-label:"))
+                        .map(|s| s.trim().trim_matches('\'').to_string())
+                        .unwrap_or_else(|| package.to_string())
+                } else {
+                    package.to_string()
+                };
+
+                apps.push(json!({
+                    "package": package,
+                    "name": app_name
+                }));
+            }
+        }
+    }
+
+    // 按包名排序
+    apps.sort_by(|a, b| {
+        let pkg_a = a.get("package").and_then(|v| v.as_str()).unwrap_or("");
+        let pkg_b = b.get("package").and_then(|v| v.as_str()).unwrap_or("");
+        pkg_a.cmp(pkg_b)
+    });
+
+    Ok(json!({
+        "success": true,
+        "apps": apps
+    }))
+}
+
+// 检查Frida环境是否就绪
+#[tauri::command]
+async fn check_frida_env() -> Result<serde_json::Value, String> {
+    let current_dir = env::current_dir().map_err(|e| e.to_string())?;
+    let frida_venv = current_dir.join("frida").join("frida").join("venv");
+
+    let (frida_exe, frida_python) = if cfg!(target_os = "windows") {
+        (frida_venv.join("Scripts").join("frida.exe"), frida_venv.join("Scripts").join("python.exe"))
+    } else {
+        (frida_venv.join("bin").join("frida"), frida_venv.join("bin").join("python"))
+    };
+
+    // 检查虚拟环境和frida.exe是否存在
+    if !frida_venv.exists() || !frida_exe.exists() {
+        return Ok(json!({
+            "ready": false,
+            "version": null
+        }));
+    }
+
+    // 检查frida版本
+    let output = Command::new(&frida_python)
+        .args(&["-c", "import frida; print(frida.__version__)"])
+        .creation_flags(0x08000000)
+        .output();
+
+    if let Ok(out) = output {
+        if out.status.success() {
+            let version = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            return Ok(json!({
+                "ready": true,
+                "version": version
+            }));
+        }
+    }
+
+    Ok(json!({
+        "ready": false,
+        "version": null
+    }))
+}
+
+// 初始化Frida环境（创建虚拟环境并安装所需库）
+#[tauri::command]
+async fn init_frida_env() -> Result<serde_json::Value, String> {
+    let current_dir = env::current_dir().map_err(|e| e.to_string())?;
+    let frida_dir = current_dir.join("frida").join("frida");
+    let frida_venv = frida_dir.join("venv");
+
+    // 确保目录存在
+    fs::create_dir_all(&frida_dir).map_err(|e| format!("创建目录失败: {}", e))?;
+
+    // 获取虚拟环境中的pip路径
+    let pip_exe = if cfg!(target_os = "windows") {
+        frida_venv.join("Scripts").join("pip.exe")
+    } else {
+        frida_venv.join("bin").join("pip")
+    };
+
+    // 检查虚拟环境是否已存在
+    if !pip_exe.exists() {
+        // 创建虚拟环境
+        eprintln!("正在创建Python虚拟环境...");
+        let venv_result = Command::new("python")
+            .args(&["-m", "venv", frida_venv.to_str().unwrap()])
+            .creation_flags(0x08000000)
+            .status()
+            .map_err(|e| format!("创建虚拟环境失败: {}", e))?;
+
+        if !venv_result.success() {
+            return Err("创建虚拟环境失败".to_string());
+        }
+    } else {
+        eprintln!("虚拟环境已存在，跳过创建...");
+    }
+
+    // 先升级pip
+    eprintln!("正在升级pip...");
+    let _ = Command::new(&pip_exe)
+        .args(&["install", "--upgrade", "pip"])
+        .creation_flags(0x08000000)
+        .status();
+
+    // 定义需要安装的包列表
+    let packages = vec![
+        "frida==17.5.2",
+        "frida-tools==13.5.2",
+        "loguru",
+        "click",
+        "hexdump",
+    ];
+
+    // 安装所有包
+    for package in &packages {
+        eprintln!("正在安装 {}...", package);
+
+        let install_result = Command::new(&pip_exe)
+            .args(&["install", package])
+            .creation_flags(0x08000000)
+            .status()
+            .map_err(|e| format!("安装{}失败: {}", package, e))?;
+
+        if !install_result.success() {
+            // 如果官方源失败，尝试阿里云镜像
+            eprintln!("官方源安装{}失败，尝试阿里云镜像...", package);
+            let install_result2 = Command::new(&pip_exe)
+                .args(&["install", package, "-i", "https://mirrors.aliyun.com/pypi/simple/", "--trusted-host", "mirrors.aliyun.com"])
+                .creation_flags(0x08000000)
+                .status()
+                .map_err(|e| format!("安装{}失败: {}", package, e))?;
+
+            if !install_result2.success() {
+                return Err(format!("安装{}失败，请检查网络连接", package));
+            }
+        }
+    }
+
+    Ok(json!({
+        "success": true,
+        "message": "Frida环境初始化完成"
+    }))
+}
+
+// 推送并启动Frida Server
+#[tauri::command]
+async fn start_frida_server() -> Result<serde_json::Value, String> {
+    let current_dir = env::current_dir().map_err(|e| e.to_string())?;
+    let adb_exe = current_dir.join("adb").join("adb.exe");
+    let frida_server_dir = current_dir.join("frida").join("frida-server");
+
+    if !adb_exe.exists() {
+        return Err("ADB工具不存在".to_string());
+    }
+
+    // 获取设备架构
+    let arch_output = Command::new(&adb_exe)
+        .args(&["shell", "getprop", "ro.product.cpu.abi"])
+        .creation_flags(0x08000000)
+        .output()
+        .map_err(|e| format!("获取设备架构失败: {}", e))?;
+
+    let arch = String::from_utf8_lossy(&arch_output.stdout).trim().to_string();
+
+    // 根据架构选择对应的frida-server (使用17.5.2版本，兼容性更好)
+    let server_name = match arch.as_str() {
+        "arm64-v8a" => "frida-server-17.5.2-android-arm64",
+        "armeabi-v7a" | "armeabi" => "frida-server-17.5.2-android-arm",
+        "x86_64" => "frida-server-17.5.2-android-x86_64",
+        "x86" => "frida-server-17.5.2-android-x86",
+        _ => return Err(format!("不支持的设备架构: {}", arch)),
+    };
+
+    let server_path = frida_server_dir.join(server_name);
+    if !server_path.exists() {
+        return Err(format!("Frida Server文件不存在: {}", server_name));
+    }
+
+    // 检查frida-server是否已在运行
+    let check_output = Command::new(&adb_exe)
+        .args(&["shell", "ps", "-A", "|", "grep", "frida-server"])
+        .creation_flags(0x08000000)
+        .output();
+
+    if let Ok(out) = check_output {
+        if !String::from_utf8_lossy(&out.stdout).trim().is_empty() {
+            return Ok(json!({
+                "success": true,
+                "message": "Frida Server已在运行"
+            }));
+        }
+    }
+
+    // 推送frida-server到设备
+    eprintln!("正在推送frida-server到设备...");
+    let push_result = Command::new(&adb_exe)
+        .args(&["push", server_path.to_str().unwrap(), "/data/local/tmp/frida-server"])
+        .creation_flags(0x08000000)
+        .status()
+        .map_err(|e| format!("推送frida-server失败: {}", e))?;
+
+    if !push_result.success() {
+        return Err("推送frida-server失败".to_string());
+    }
+
+    // 设置权限
+    Command::new(&adb_exe)
+        .args(&["shell", "chmod", "755", "/data/local/tmp/frida-server"])
+        .creation_flags(0x08000000)
+        .status()
+        .map_err(|e| format!("设置权限失败: {}", e))?;
+
+    // 后台启动frida-server
+    Command::new(&adb_exe)
+        .args(&["shell", "su", "-c", "/data/local/tmp/frida-server -D &"])
+        .creation_flags(0x08000000)
+        .spawn()
+        .map_err(|e| format!("启动frida-server失败: {}", e))?;
+
+    // 等待启动
+    std::thread::sleep(std::time::Duration::from_secs(2));
+
+    Ok(json!({
+        "success": true,
+        "message": "Frida Server已启动"
+    }))
+}
+
+// 检查Frida Server是否正在运行
+#[tauri::command]
+async fn check_frida_server_status() -> Result<serde_json::Value, String> {
+    let current_dir = env::current_dir().map_err(|e| e.to_string())?;
+    let adb_exe = current_dir.join("adb").join("adb.exe");
+
+    if !adb_exe.exists() {
+        return Ok(json!({
+            "running": false,
+            "message": "ADB工具不存在"
+        }));
+    }
+
+    // 使用 ps -A 和 grep 分开执行来检查frida-server
+    let check_output = Command::new(&adb_exe)
+        .args(&["shell", "ps -A | grep frida-server"])
+        .creation_flags(0x08000000)
+        .output();
+
+    if let Ok(out) = check_output {
+        let output_str = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if !output_str.is_empty() && output_str.contains("frida-server") {
+            return Ok(json!({
+                "running": true,
+                "message": "Frida Server正在运行"
+            }));
+        }
+    }
+
+    Ok(json!({
+        "running": false,
+        "message": "Frida Server未运行"
+    }))
+}
+
+// 停止Frida Server
+#[tauri::command]
+async fn stop_frida_server() -> Result<serde_json::Value, String> {
+    let current_dir = env::current_dir().map_err(|e| e.to_string())?;
+    let adb_exe = current_dir.join("adb").join("adb.exe");
+
+    if !adb_exe.exists() {
+        return Err("ADB工具不存在".to_string());
+    }
+
+    // 杀死frida-server进程
+    let _ = Command::new(&adb_exe)
+        .args(&["shell", "su -c 'pkill -9 frida-server'"])
+        .creation_flags(0x08000000)
+        .status();
+
+    // 备用方式：通过killall
+    let _ = Command::new(&adb_exe)
+        .args(&["shell", "su -c 'killall frida-server'"])
+        .creation_flags(0x08000000)
+        .status();
+
+    // 等待进程终止
+    std::thread::sleep(std::time::Duration::from_millis(500));
+
+    Ok(json!({
+        "success": true,
+        "message": "Frida Server已停止"
+    }))
+}
+
+// 启动网络抓包
+#[tauri::command]
+async fn start_packet_capture(
+    case_number: String,
+    apk_dir: String,
+    package_name: String,
+    spawn_mode: bool,
+    state: tauri::State<'_, AppState>
+) -> Result<serde_json::Value, String> {
+    let current_dir = env::current_dir().map_err(|e| e.to_string())?;
+
+    // Frida虚拟环境中的python
+    let frida_python = if cfg!(target_os = "windows") {
+        current_dir.join("frida").join("frida").join("venv").join("Scripts").join("python.exe")
+    } else {
+        current_dir.join("frida").join("frida").join("venv").join("bin").join("python")
+    };
+
+    if !frida_python.exists() {
+        return Err("Frida环境未初始化，请先初始化Frida环境".to_string());
+    }
+
+    // 抓包脚本路径
+    let capture_script = current_dir.join("scripts").join("packet_capture").join("r0capture_http.py");
+    if !capture_script.exists() {
+        return Err("抓包脚本不存在".to_string());
+    }
+
+    // 创建抓包会话目录（在APK目录下的capture文件夹）
+    let timestamp = chrono::Local::now().format("%Y%m%d%H%M%S").to_string();
+    let capture_session_dir = current_dir.join(&apk_dir).join("capture").join(&timestamp);
+    fs::create_dir_all(&capture_session_dir).map_err(|e| format!("创建抓包目录失败: {}", e))?;
+
+    // 创建输出文件路径
+    let output_file = capture_session_dir.join("packets.json");
+    let pcap_file = capture_session_dir.join("capture.pcap");
+
+    // 保存会话信息
+    let session_info = json!({
+        "package": package_name,
+        "apk_dir": apk_dir,
+        "start_time": chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+        "spawn_mode": spawn_mode
+    });
+    fs::write(
+        capture_session_dir.join("session.json"),
+        serde_json::to_string_pretty(&session_info).unwrap()
+    ).map_err(|e| format!("保存会话信息失败: {}", e))?;
+
+    // 构建启动命令
+    let mut cmd = Command::new(&frida_python);
+    cmd.arg(&capture_script)
+        .arg("-U")  // USB设备
+        .arg("-p").arg(pcap_file.to_str().unwrap());
+
+    if spawn_mode {
+        cmd.arg("-f");  // spawn模式
+    }
+
+    cmd.arg(&package_name);
+
+    // 设置环境变量以便脚本输出JSON格式
+    cmd.env("CAPTURE_OUTPUT_FILE", output_file.to_str().unwrap());
+
+    // 创建日志文件用于记录Python脚本输出
+    let log_file_path = capture_session_dir.join("capture.log");
+    let log_file = std::fs::File::create(&log_file_path)
+        .map_err(|e| format!("创建日志文件失败: {}", e))?;
+    let log_file_clone = log_file.try_clone()
+        .map_err(|e| format!("复制文件句柄失败: {}", e))?;
+
+    cmd.stdout(Stdio::from(log_file))
+        .stderr(Stdio::from(log_file_clone));
+
+    #[cfg(target_os = "windows")]
+    cmd.creation_flags(0x08000000);
+
+    // 启动抓包进程
+    let child = cmd.spawn()
+        .map_err(|e| format!("启动抓包进程失败: {}", e))?;
+
+    eprintln!("抓包进程已启动，日志文件: {}", log_file_path.display());
+
+    // 保存进程句柄
+    let capture_id = format!("{}_{}", case_number, timestamp);
+    {
+        let mut processes = state.capture_processes.lock().unwrap();
+        processes.insert(capture_id.clone(), child);
+    }
+
+    Ok(json!({
+        "success": true,
+        "capture_id": capture_id,
+        "session_dir": timestamp,
+        "log_file": log_file_path.to_str().unwrap_or(""),
+        "message": "抓包已启动"
+    }))
+}
+
+// 停止网络抓包
+#[tauri::command]
+async fn stop_packet_capture(
+    capture_id: String,
+    state: tauri::State<'_, AppState>
+) -> Result<serde_json::Value, String> {
+    let mut processes = state.capture_processes.lock().unwrap();
+
+    if let Some(mut child) = processes.remove(&capture_id) {
+        // 发送终止信号
+        child.kill().ok();
+        child.wait().ok();
+
+        Ok(json!({
+            "success": true,
+            "message": "抓包已停止"
+        }))
+    } else {
+        Err("未找到抓包进程".to_string())
+    }
+}
+
+// 获取抓包会话列表
+#[tauri::command]
+async fn get_capture_sessions(apk_dir: String) -> Result<serde_json::Value, String> {
+    let current_dir = env::current_dir().map_err(|e| e.to_string())?;
+    let captures_dir = current_dir.join(&apk_dir).join("capture");
+
+    if !captures_dir.exists() {
+        return Ok(json!({
+            "success": true,
+            "sessions": []
+        }));
+    }
+
+    let mut sessions: Vec<serde_json::Value> = Vec::new();
+
+    if let Ok(entries) = fs::read_dir(&captures_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                let session_file = path.join("session.json");
+                if session_file.exists() {
+                    if let Ok(content) = fs::read_to_string(&session_file) {
+                        if let Ok(mut info) = serde_json::from_str::<serde_json::Value>(&content) {
+                            // 添加会话ID（目录名）
+                            if let Some(obj) = info.as_object_mut() {
+                                obj.insert("session_id".to_string(), json!(entry.file_name().to_string_lossy().to_string()));
+
+                                // 检查是否有抓包数据
+                                let packets_file = path.join("packets.json");
+                                let pcap_file = path.join("capture.pcap");
+                                obj.insert("has_packets".to_string(), json!(packets_file.exists()));
+                                obj.insert("has_pcap".to_string(), json!(pcap_file.exists()));
+                            }
+                            sessions.push(info);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 按时间倒序排序
+    sessions.sort_by(|a, b| {
+        let time_a = a.get("start_time").and_then(|v| v.as_str()).unwrap_or("");
+        let time_b = b.get("start_time").and_then(|v| v.as_str()).unwrap_or("");
+        time_b.cmp(time_a)
+    });
+
+    Ok(json!({
+        "success": true,
+        "sessions": sessions
+    }))
+}
+
+// 获取抓包数据
+#[tauri::command]
+async fn get_capture_packets(
+    apk_dir: String,
+    session_id: String,
+    page: Option<usize>,
+    page_size: Option<usize>
+) -> Result<serde_json::Value, String> {
+    let current_dir = env::current_dir().map_err(|e| e.to_string())?;
+    let session_dir = current_dir.join(&apk_dir).join("capture").join(&session_id);
+    let packets_file = session_dir.join("packets.json");
+
+    if !packets_file.exists() {
+        return Ok(json!({
+            "success": true,
+            "packets": [],
+            "total": 0
+        }));
+    }
+
+    let content = fs::read_to_string(&packets_file)
+        .map_err(|e| format!("读取抓包数据失败: {}", e))?;
+
+    let packets: Vec<serde_json::Value> = serde_json::from_str(&content)
+        .unwrap_or_else(|_| Vec::new());
+
+    let total = packets.len();
+    let page = page.unwrap_or(1);
+    let page_size = page_size.unwrap_or(50);
+    let start = (page - 1) * page_size;
+    let end = std::cmp::min(start + page_size, total);
+
+    let page_packets: Vec<serde_json::Value> = if start < total {
+        packets[start..end].to_vec()
+    } else {
+        Vec::new()
+    };
+
+    Ok(json!({
+        "success": true,
+        "packets": page_packets,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": (total + page_size - 1) / page_size
+    }))
+}
+
+// 删除抓包会话
+#[tauri::command]
+async fn delete_capture_session(apk_dir: String, session_id: String) -> Result<serde_json::Value, String> {
+    let current_dir = env::current_dir().map_err(|e| e.to_string())?;
+    let session_dir = current_dir.join(&apk_dir).join("capture").join(&session_id);
+
+    if session_dir.exists() {
+        fs::remove_dir_all(&session_dir)
+            .map_err(|e| format!("删除抓包会话失败: {}", e))?;
+    }
+
+    Ok(json!({
+        "success": true,
+        "message": "抓包会话已删除"
+    }))
+}
+
+// ===================== Frida脚本模块 =====================
+
+// Frida脚本配置结构
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
+struct FridaScript {
+    id: String,
+    filename: String,
+    name: String,
+    description: String,
+    category: String,
+    enabled: bool,
+}
+
+#[derive(serde::Deserialize)]
+struct FridaScriptsConfig {
+    scripts: Vec<FridaScript>,
+    categories: HashMap<String, String>,
+}
+
+// 获取Frida脚本列表
+#[tauri::command]
+async fn get_frida_scripts() -> Result<serde_json::Value, String> {
+    let current_dir = env::current_dir().map_err(|e| e.to_string())?;
+    let scripts_config_path = current_dir.join("frida").join("scripts").join("scripts.json");
+
+    if !scripts_config_path.exists() {
+        return Ok(json!({
+            "success": false,
+            "message": "脚本配置文件不存在",
+            "scripts": []
+        }));
+    }
+
+    let config_content = fs::read_to_string(&scripts_config_path)
+        .map_err(|e| format!("读取脚本配置失败: {}", e))?;
+
+    let config: FridaScriptsConfig = serde_json::from_str(&config_content)
+        .map_err(|e| format!("解析脚本配置失败: {}", e))?;
+
+    // 添加分类名称到每个脚本
+    let scripts_with_category: Vec<serde_json::Value> = config.scripts.iter()
+        .filter(|s| s.enabled)
+        .map(|s| {
+            let category_name = config.categories.get(&s.category)
+                .cloned()
+                .unwrap_or_else(|| s.category.clone());
+            json!({
+                "id": s.id,
+                "filename": s.filename,
+                "name": s.name,
+                "description": s.description,
+                "category": s.category,
+                "categoryName": category_name,
+                "enabled": s.enabled
+            })
+        })
+        .collect();
+
+    Ok(json!({
+        "success": true,
+        "scripts": scripts_with_category
+    }))
+}
+
+// 全局Frida输出缓冲区 - 用于在线程间共享输出数据
+lazy_static::lazy_static! {
+    static ref FRIDA_OUTPUT_BUFFERS: Arc<Mutex<HashMap<String, FridaOutputBuffer>>> = Arc::new(Mutex::new(HashMap::new()));
+}
+
+// 运行Frida脚本
+#[tauri::command]
+async fn run_frida_scripts(
+    package_name: String,
+    scripts: Vec<String>,
+    custom_scripts: Option<Vec<String>>,
+    spawn_mode: bool,
+    state: tauri::State<'_, AppState>
+) -> Result<serde_json::Value, String> {
+    let current_dir = env::current_dir().map_err(|e| e.to_string())?;
+
+    // Frida虚拟环境中的frida命令行工具
+    let frida_exe = if cfg!(target_os = "windows") {
+        current_dir.join("frida").join("frida").join("venv").join("Scripts").join("frida.exe")
+    } else {
+        current_dir.join("frida").join("frida").join("venv").join("bin").join("frida")
+    };
+
+    if !frida_exe.exists() {
+        return Err("Frida环境未初始化，请先初始化Frida环境".to_string());
+    }
+
+    // 脚本目录
+    let scripts_dir = current_dir.join("frida").join("scripts");
+
+    // 合并所有选中的脚本内容
+    let mut combined_script = String::new();
+
+    // 添加通用头部 - 等待应用初始化的包装函数
+    combined_script.push_str(r#"// Combined Frida Scripts
+console.log('[*] Script loaded, initializing...');
+
+// 等待应用完全初始化的通用函数
+function waitForApplication(callback) {
+    Java.perform(function() {
+        var ActivityThread = Java.use("android.app.ActivityThread");
+        var app = ActivityThread.currentApplication();
+
+        if (app != null) {
+            console.log('[+] Application initialized, loading hooks...');
+            callback();
+        } else {
+            console.log('[*] Waiting for application to initialize...');
+            setTimeout(function() {
+                waitForApplication(callback);
+            }, 100);
+        }
+    });
+}
+
+waitForApplication(function() {
+"#);
+
+    // 加载普通脚本（相对路径）
+    for script_name in &scripts {
+        let script_path = scripts_dir.join(script_name);
+        if script_path.exists() {
+            if let Ok(content) = fs::read_to_string(&script_path) {
+                combined_script.push_str(&format!("\n    // === {} ===\n", script_name));
+                // 缩进脚本内容
+                for line in content.lines() {
+                    combined_script.push_str("    ");
+                    combined_script.push_str(line);
+                    combined_script.push_str("\n");
+                }
+                combined_script.push_str("\n");
+            }
+        }
+    }
+
+    // 加载自定义脚本（绝对路径）
+    if let Some(custom_script_paths) = custom_scripts {
+        for custom_path in &custom_script_paths {
+            let script_path = std::path::Path::new(custom_path);
+            if script_path.exists() {
+                if let Ok(content) = fs::read_to_string(&script_path) {
+                    let file_name = script_path.file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "custom_script".to_string());
+                    combined_script.push_str(&format!("\n    // === [自定义] {} ===\n", file_name));
+                    // 缩进脚本内容
+                    for line in content.lines() {
+                        combined_script.push_str("    ");
+                        combined_script.push_str(line);
+                        combined_script.push_str("\n");
+                    }
+                    combined_script.push_str("\n");
+                }
+            } else {
+                return Err(format!("自定义脚本不存在: {}", custom_path));
+            }
+        }
+    }
+
+    // 关闭 waitForApplication 回调
+    combined_script.push_str("});\n\nconsole.log('[*] All scripts queued for loading');\n");
+
+    // 创建临时脚本文件
+    let temp_script_path = current_dir.join("frida").join("temp_combined_script.js");
+    fs::write(&temp_script_path, &combined_script)
+        .map_err(|e| format!("写入临时脚本失败: {}", e))?;
+
+    // 生成唯一的进程ID
+    let process_id = format!("frida_{}", chrono::Local::now().format("%Y%m%d%H%M%S%3f"));
+
+    // 使用frida命令行工具直接运行
+    // frida -U -l script.js -f package_name (spawn模式)
+    // frida -U -l script.js package_name (attach模式)
+    let mut cmd = Command::new(&frida_exe);
+    cmd.arg("-U"); // USB设备
+
+    cmd.arg("-l").arg(&temp_script_path); // 加载脚本
+
+    if spawn_mode {
+        cmd.arg("-f").arg(&package_name); // spawn模式：-f 包名
+        // frida会自动resume进程
+    } else {
+        cmd.arg(&package_name); // attach模式：直接跟包名
+    }
+
+    cmd.stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+
+    #[cfg(target_os = "windows")]
+    {
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    let mut child = cmd.spawn()
+        .map_err(|e| format!("启动Frida进程失败: {}", e))?;
+
+    // 获取stdout和stderr
+    let stdout = child.stdout.take();
+    let stderr = child.stderr.take();
+
+    let process_id_clone = process_id.clone();
+    let process_id_for_stdout = process_id.clone();
+    let process_id_for_stderr = process_id.clone();
+
+    // 初始化全局输出缓冲
+    {
+        let mut outputs = FRIDA_OUTPUT_BUFFERS.lock().unwrap();
+        outputs.insert(process_id.clone(), FridaOutputBuffer {
+            lines: Vec::new(),
+            finished: false,
+        });
+    }
+
+    // 保存进程
+    {
+        let mut processes = state.frida_processes.lock().unwrap();
+        processes.insert(process_id.clone(), child);
+    }
+
+    // 在后台线程中读取stdout
+    if let Some(stdout) = stdout {
+        std::thread::spawn(move || {
+            let buf_reader = BufReader::new(stdout);
+            for line in buf_reader.lines() {
+                if let Ok(line_content) = line {
+                    let line_type = if line_content.starts_with("[+]") || line_content.starts_with("[SEND]") {
+                        "success"
+                    } else if line_content.starts_with("[-]") || line_content.starts_with("[ERROR]") {
+                        "error"
+                    } else if line_content.starts_with("[!]") {
+                        "warn"
+                    } else {
+                        "info"
+                    };
+
+                    let mut outputs = FRIDA_OUTPUT_BUFFERS.lock().unwrap();
+                    if let Some(buffer) = outputs.get_mut(&process_id_for_stdout) {
+                        buffer.lines.push(FridaOutputLine {
+                            content: line_content,
+                            line_type: line_type.to_string(),
+                        });
+                    }
+                }
+            }
+
+            // 标记stdout结束
+            let mut outputs = FRIDA_OUTPUT_BUFFERS.lock().unwrap();
+            if let Some(buffer) = outputs.get_mut(&process_id_for_stdout) {
+                buffer.finished = true;
+            }
+        });
+    }
+
+    // 在后台线程中读取stderr
+    if let Some(stderr) = stderr {
+        std::thread::spawn(move || {
+            let buf_reader = BufReader::new(stderr);
+            for line in buf_reader.lines() {
+                if let Ok(line_content) = line {
+                    let mut outputs = FRIDA_OUTPUT_BUFFERS.lock().unwrap();
+                    if let Some(buffer) = outputs.get_mut(&process_id_for_stderr) {
+                        buffer.lines.push(FridaOutputLine {
+                            content: line_content,
+                            line_type: "error".to_string(),
+                        });
+                    }
+                }
+            }
+        });
+    }
+
+    Ok(json!({
+        "success": true,
+        "processId": process_id_clone,
+        "message": "Frida脚本已启动"
+    }))
+}
+
+// 停止Frida脚本
+#[tauri::command]
+async fn stop_frida_scripts(
+    process_id: String,
+    state: tauri::State<'_, AppState>
+) -> Result<serde_json::Value, String> {
+    // 杀死进程
+    {
+        let mut processes = state.frida_processes.lock().unwrap();
+        if let Some(mut child) = processes.remove(&process_id) {
+            child.kill().ok();
+            child.wait().ok();
+        }
+    }
+
+    // 标记输出结束 - 使用全局缓冲区
+    {
+        let mut outputs = FRIDA_OUTPUT_BUFFERS.lock().unwrap();
+        if let Some(buffer) = outputs.get_mut(&process_id) {
+            buffer.finished = true;
+        }
+    }
+
+    Ok(json!({
+        "success": true,
+        "message": "Frida已停止"
+    }))
+}
+
+// 获取Frida输出 - 使用全局缓冲区
+#[tauri::command]
+async fn get_frida_output(
+    process_id: String,
+    _state: tauri::State<'_, AppState>
+) -> Result<serde_json::Value, String> {
+    let mut outputs = FRIDA_OUTPUT_BUFFERS.lock().unwrap();
+
+    if let Some(buffer) = outputs.get_mut(&process_id) {
+        // 获取并清空已读取的行
+        let lines: Vec<FridaOutputLine> = buffer.lines.drain(..).collect();
+        let finished = buffer.finished;
+
+        Ok(json!({
+            "success": true,
+            "lines": lines,
+            "finished": finished
+        }))
+    } else {
+        Ok(json!({
+            "success": false,
+            "lines": [],
+            "finished": true,
+            "message": "进程不存在"
+        }))
+    }
+}
+
+// 保存Frida输出
+#[tauri::command]
+async fn save_frida_output(filename: String, content: String) -> Result<serde_json::Value, String> {
+    let current_dir = env::current_dir().map_err(|e| e.to_string())?;
+    let output_dir = current_dir.join("frida").join("output");
+
+    // 确保输出目录存在
+    fs::create_dir_all(&output_dir).map_err(|e| format!("创建输出目录失败: {}", e))?;
+
+    let output_path = output_dir.join(&filename);
+    fs::write(&output_path, &content).map_err(|e| format!("保存输出失败: {}", e))?;
+
+    Ok(json!({
+        "success": true,
+        "path": output_path.to_string_lossy().to_string(),
+        "message": "输出已保存"
+    }))
+}
+
+// 保存Frida脚本到列表
+#[derive(serde::Deserialize)]
+struct ScriptInfo {
+    id: String,
+    name: String,
+    description: String,
+    category: String,
+}
+
+#[tauri::command]
+async fn save_frida_script(
+    source_path: String,
+    script_info: ScriptInfo,
+) -> Result<serde_json::Value, String> {
+    let current_dir = env::current_dir().map_err(|e| e.to_string())?;
+    let scripts_dir = current_dir.join("frida").join("scripts");
+    let scripts_json_path = scripts_dir.join("scripts.json");
+
+    // 确保scripts目录存在
+    if !scripts_dir.exists() {
+        fs::create_dir_all(&scripts_dir).map_err(|e| format!("创建scripts目录失败: {}", e))?;
+    }
+
+    // 读取源脚本文件
+    let source = std::path::Path::new(&source_path);
+    if !source.exists() {
+        return Err(format!("源脚本文件不存在: {}", source_path));
+    }
+
+    let script_content = fs::read_to_string(&source)
+        .map_err(|e| format!("读取脚本文件失败: {}", e))?;
+
+    // 生成目标文件名
+    let target_filename = format!("{}.js", script_info.id);
+    let target_path = scripts_dir.join(&target_filename);
+
+    // 检查是否已存在同名文件
+    if target_path.exists() {
+        return Err(format!("脚本文件已存在: {}", target_filename));
+    }
+
+    // 复制脚本文件
+    fs::write(&target_path, script_content)
+        .map_err(|e| format!("保存脚本文件失败: {}", e))?;
+
+    // 读取现有的scripts.json
+    let mut scripts: Vec<serde_json::Value> = if scripts_json_path.exists() {
+        let json_content = fs::read_to_string(&scripts_json_path)
+            .map_err(|e| format!("读取scripts.json失败: {}", e))?;
+        serde_json::from_str(&json_content).unwrap_or_else(|_| Vec::new())
+    } else {
+        Vec::new()
+    };
+
+    // 添加新脚本配置
+    scripts.push(json!({
+        "id": script_info.id,
+        "name": script_info.name,
+        "description": script_info.description,
+        "category": script_info.category,
+        "filename": target_filename
+    }));
+
+    // 保存scripts.json
+    let json_content = serde_json::to_string_pretty(&scripts)
+        .map_err(|e| format!("序列化scripts.json失败: {}", e))?;
+    fs::write(&scripts_json_path, json_content)
+        .map_err(|e| format!("保存scripts.json失败: {}", e))?;
+
+    Ok(json!({
+        "success": true,
+        "message": "脚本已保存到列表"
+    }))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     env_logger::init();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(AppState {
             scrcpy_processes: Mutex::new(HashMap::new()),
+            capture_processes: Mutex::new(HashMap::new()),
+            frida_processes: Mutex::new(HashMap::new()),
+            frida_outputs: Mutex::new(HashMap::new()),
         })
         .invoke_handler(tauri::generate_handler![
-            write_file, write_binary_file, set_title, show_window, close_splash_show_main, read_file, delete_file, delete_dir, create_dir, read_dirs, save_excel_file, read_excel_file, file_exists, open_file, delete_path, check_adb_devices, install_apk, start_scrcpy, stop_scrcpy, is_scrcpy_ready, cleanup_residual_processes, get_current_dir, get_apk_info, get_apk_list, decompile_apk, get_apk_permissions, get_apk_details, preanalyze_apk_details, get_jadx_file_tree, get_jadx_subdirectory, read_jadx_file, search_jadx_files, scan_sensitive_info, get_sensitive_info, ping_ip
+            write_file, write_binary_file, copy_file, select_apk_file, set_title, show_window, close_splash_show_main, read_file, delete_file, delete_dir, create_dir, read_dirs, save_excel_file, read_excel_file, file_exists, open_file, delete_path, check_adb_devices, install_apk, check_apk_installed, start_scrcpy, stop_scrcpy, is_scrcpy_ready, cleanup_residual_processes, get_current_dir, get_apk_info, get_apk_list, decompile_apk, get_apk_permissions, get_apk_details, preanalyze_apk_details, get_jadx_file_tree, get_jadx_subdirectory, read_jadx_file, search_jadx_files, scan_sensitive_info, get_sensitive_info, ping_ip, analyze_third_party_services,
+            // 网络抓包模块
+            get_device_apps, check_frida_env, init_frida_env, start_frida_server, stop_frida_server, check_frida_server_status, start_packet_capture, stop_packet_capture, get_capture_sessions, get_capture_packets, delete_capture_session,
+            // Frida脚本模块
+            get_frida_scripts, run_frida_scripts, stop_frida_scripts, get_frida_output, save_frida_output, save_frida_script
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

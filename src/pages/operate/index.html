@@ -28,8 +28,7 @@
                 <div class="device-container" id="device-container">
                     <iframe id="device-iframe" class="device-iframe" src="about:blank"></iframe>
                     <div id="loading-indicator" class="loading-indicator">
-                        <div class="spinner"></div>
-                        <div class="loading-text">自动连接手机中...</div>
+                        <div class="loading-text">准备中...</div>
                     </div>
                 </div>
             </div>
@@ -48,7 +47,6 @@
                             <!-- APK标签会动态添加到这里 -->
                         </div>
                         <button id="add-apk-btn" class="add-apk-btn-small">+ 添加</button>
-                        <input id="apk-file-input" type="file" accept=".apk" style="display: none;">
                     </div>
                     <!-- 第二行：APK详情 -->
                     <div id="apk-detail" class="apk-detail">
@@ -62,60 +60,73 @@
                         <div class="operation-tab" data-tab="services">第三方服务</div>
                         <div class="operation-tab" data-tab="source">源码分析</div>
                         <div class="operation-tab" data-tab="sensitive">敏感信息</div>
+                        <div class="operation-tab" data-tab="capture">网络抓包</div>
                         <div class="operation-tab" data-tab="frida">Frida脚本</div>
                     </div>
                     <!-- 第四行：操作区内容 -->
                     <div id="apk-operation-content" class="apk-operation-content">
                         <div id="tab-overview" class="operation-panel active">
                             <div class="overview-container">
-                                <!-- 左侧列 -->
-                                <div class="overview-column overview-left">
-                                    <!-- 权限统计摘要 -->
-                                    <div class="overview-section overview-permissions" id="overview-permissions">
-                                        <div class="overview-section-header">
-                                            <span class="overview-section-title">权限统计</span>
-                                            <span class="overview-link" data-target="permissions">查看详情 →</span>
-                                        </div>
-                                        <div class="overview-section-content" id="overview-permissions-content">
-                                            <div class="overview-placeholder">加载中...</div>
-                                        </div>
+                                <!-- 基本信息 -->
+                                <div class="overview-basic-info" id="overview-basic-info">
+                                    <div class="overview-section-header">
+                                        <span class="overview-section-title">基本信息</span>
                                     </div>
-                                    <!-- 签名方案摘要 -->
-                                    <div class="overview-section overview-signature" id="overview-signature">
-                                        <div class="overview-section-header">
-                                            <span class="overview-section-title">签名信息</span>
-                                            <span class="overview-link" data-target="details">查看详情 →</span>
-                                        </div>
-                                        <div class="overview-section-content" id="overview-signature-content">
-                                            <div class="overview-placeholder">加载中...</div>
-                                        </div>
+                                    <div class="overview-basic-info-content" id="overview-basic-info-content">
+                                        <div class="overview-placeholder">上传一个apk开始分析</div>
                                     </div>
                                 </div>
-                                <!-- 右侧列：IP检测 -->
-                                <div class="overview-column overview-right">
-                                    <div class="overview-section overview-ip" id="overview-ip">
-                                        <div class="overview-section-header">
-                                            <span class="overview-section-title">疑似IP地址</span>
-                                            <div class="overview-ip-header-right">
-                                                <span class="overview-ip-status" id="overview-ip-status"></span>
-                                                <button class="overview-ip-rescan-btn" id="overview-ip-rescan-btn" style="display: none;">重新检测</button>
+                                <!-- 左右两列包装器 -->
+                                <div class="overview-columns">
+                                    <!-- 左侧列 -->
+                                    <div class="overview-column overview-left">
+                                        <!-- 权限统计摘要 -->
+                                        <div class="overview-section overview-permissions" id="overview-permissions">
+                                            <div class="overview-section-header">
+                                                <span class="overview-section-title">权限统计</span>
+                                                <span class="overview-link" data-target="permissions">查看详情 →</span>
+                                            </div>
+                                            <div class="overview-section-content" id="overview-permissions-content">
+                                                <div class="overview-placeholder">上传一个apk开始分析</div>
                                             </div>
                                         </div>
-                                        <div class="overview-section-content overview-ip-content" id="overview-ip-content">
-                                            <div class="overview-placeholder">加载中...</div>
+                                        <!-- 签名方案摘要 -->
+                                        <div class="overview-section overview-signature" id="overview-signature">
+                                            <div class="overview-section-header">
+                                                <span class="overview-section-title">签名信息</span>
+                                                <span class="overview-link" data-target="details">查看详情 →</span>
+                                            </div>
+                                            <div class="overview-section-content" id="overview-signature-content">
+                                                <div class="overview-placeholder">上传一个apk开始分析</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- 右侧列：IP检测 -->
+                                    <div class="overview-column overview-right">
+                                        <div class="overview-section overview-ip" id="overview-ip">
+                                            <div class="overview-section-header">
+                                                <span class="overview-section-title">疑似IP地址</span>
+                                                <div class="overview-ip-header-right">
+                                                    <span class="overview-ip-status" id="overview-ip-status"></span>
+                                                    <button class="overview-ip-rescan-btn" id="overview-ip-rescan-btn" style="display: none;">重新检测</button>
+                                                </div>
+                                            </div>
+                                            <div class="overview-section-content overview-ip-content" id="overview-ip-content">
+                                                <div class="overview-placeholder">上传一个apk开始分析</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div id="tab-details" class="operation-panel">
-                            <div class="operation-panel-placeholder">详细信息内容区域</div>
+                            <div class="operation-panel-placeholder">上传一个apk开始分析</div>
                         </div>
                         <div id="tab-permissions" class="operation-panel">
-                            <div class="operation-panel-placeholder">静态权限内容区域</div>
+                            <div class="operation-panel-placeholder">上传一个apk开始分析</div>
                         </div>
                         <div id="tab-services" class="operation-panel">
-                            <div class="operation-panel-placeholder">第三方服务内容区域</div>
+                            <div class="operation-panel-placeholder">上传一个apk开始分析</div>
                         </div>
                         <div id="tab-source" class="operation-panel">
                             <div class="source-modules">
@@ -164,8 +175,184 @@
                                 </div>
                             </div>
                         </div>
+                        <div id="tab-capture" class="operation-panel">
+                            <div class="capture-container">
+                                <!-- 左侧抓包控制和会话列表 -->
+                                <div class="capture-left">
+                                    <!-- 环境状态 -->
+                                    <div class="capture-env-status" id="capture-env-status">
+                                        <div class="env-status-item" id="frida-env-status">
+                                            <span class="status-icon">⚪</span>
+                                            <span class="status-label">Frida环境</span>
+                                            <span class="status-value">检测中...</span>
+                                        </div>
+                                        <div class="env-status-item" id="frida-server-status">
+                                            <span class="status-icon">⚪</span>
+                                            <span class="status-label">Frida Server</span>
+                                            <span class="status-value">未启动</span>
+                                        </div>
+                                        <div class="capture-env-buttons">
+                                            <button class="capture-init-btn" id="init-frida-btn">初始化环境</button>
+                                            <button class="capture-init-btn" id="start-server-btn" disabled>启动服务</button>
+                                            <button class="capture-init-btn capture-stop-server-btn" id="stop-server-btn" style="display: none;">停止服务</button>
+                                        </div>
+                                    </div>
+                                    <!-- 抓包控制 -->
+                                    <div class="capture-control">
+                                        <div class="capture-target">
+                                            <label>抓包目标：</label>
+                                            <select id="capture-target-select" class="capture-select">
+                                                <option value="current">当前APK</option>
+                                                <option value="device">设备上的APP</option>
+                                            </select>
+                                        </div>
+                                        <div class="capture-device-apps" id="capture-device-apps" style="display: none;">
+                                            <select id="device-app-select" class="capture-select">
+                                                <option value="">请选择应用...</option>
+                                            </select>
+                                            <button class="capture-refresh-btn" id="refresh-apps-btn">刷新</button>
+                                        </div>
+                                        <div class="capture-options">
+                                            <label class="capture-checkbox">
+                                                <input type="checkbox" id="capture-spawn-mode" checked>
+                                                <span>Spawn模式（重启APP）</span>
+                                            </label>
+                                        </div>
+                                        <div class="capture-actions">
+                                            <button class="capture-start-btn" id="start-capture-btn" disabled>开始抓包</button>
+                                            <button class="capture-stop-btn" id="stop-capture-btn" disabled>停止抓包</button>
+                                        </div>
+                                    </div>
+                                    <!-- 抓包会话列表 -->
+                                    <div class="capture-sessions">
+                                        <div class="capture-sessions-header">
+                                            <span>抓包记录</span>
+                                            <button class="capture-refresh-btn" id="refresh-sessions-btn">刷新</button>
+                                        </div>
+                                        <div class="capture-sessions-list" id="capture-sessions-list">
+                                            <div class="capture-placeholder">暂无抓包记录</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- 分割线 -->
+                                <div class="capture-resizer" id="capture-resizer"></div>
+                                <!-- 右侧数据包查看器 -->
+                                <div class="capture-right">
+                                    <div class="capture-packets-header">
+                                        <span class="packets-title" id="packets-title">数据包列表</span>
+                                        <div class="packets-filter">
+                                            <input type="text" id="packets-filter-input" class="packets-filter-input" placeholder="过滤: 方法、URL、状态码...">
+                                        </div>
+                                    </div>
+                                    <div class="capture-packets-table-wrapper">
+                                        <table class="capture-packets-table" id="capture-packets-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="col-no">#</th>
+                                                    <th class="col-time">时间</th>
+                                                    <th class="col-method">方法</th>
+                                                    <th class="col-host">主机</th>
+                                                    <th class="col-path">路径</th>
+                                                    <th class="col-status">状态</th>
+                                                    <th class="col-size">大小</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="capture-packets-body">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="capture-packets-placeholder" id="capture-packets-placeholder">
+                                        <span>选择左侧抓包记录查看数据包</span>
+                                    </div>
+                                    <!-- 数据包详情 -->
+                                    <div class="capture-packet-detail" id="capture-packet-detail">
+                                        <div class="packet-detail-tabs">
+                                            <button class="packet-detail-tab active" data-tab="request">请求</button>
+                                            <button class="packet-detail-tab" data-tab="response">响应</button>
+                                            <button class="packet-detail-tab" data-tab="hex">十六进制</button>
+                                        </div>
+                                        <div class="packet-detail-content" id="packet-detail-content">
+                                            <div class="packet-detail-placeholder">点击上方数据包查看详情</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div id="tab-frida" class="operation-panel">
-                            <div class="operation-panel-placeholder">Frida脚本内容区域</div>
+                            <div class="frida-container">
+                                <!-- 左侧：脚本列表 -->
+                                <div class="frida-left">
+                                    <div class="frida-scripts-header">
+                                        <span class="frida-scripts-title">Frida脚本</span>
+                                        <div class="frida-scripts-header-btns">
+                                            <button class="frida-add-script-btn" id="frida-add-script-btn" title="添加其他脚本">+ 添加</button>
+                                            <button class="frida-select-all-btn" id="frida-select-all-btn">全选</button>
+                                        </div>
+                                    </div>
+                                    <div class="frida-scripts-list" id="frida-scripts-list">
+                                        <div class="frida-placeholder">加载脚本中...</div>
+                                    </div>
+                                </div>
+                                <!-- 拖拽条 -->
+                                <div class="frida-resizer" id="frida-resizer"></div>
+                                <!-- 右侧：控制和输出 -->
+                                <div class="frida-right">
+                                    <!-- 第一行：选中的脚本 + 运行按钮 -->
+                                    <div class="frida-control-row">
+                                        <div class="frida-selected-scripts" id="frida-selected-scripts">
+                                            <span class="frida-selected-placeholder">请选择要执行的脚本</span>
+                                        </div>
+                                        <div class="frida-control-buttons">
+                                            <button class="frida-run-btn" id="frida-run-btn" disabled>运行脚本</button>
+                                            <button class="frida-stop-btn" id="frida-stop-btn" disabled>停止</button>
+                                        </div>
+                                    </div>
+                                    <!-- 第二行：目标选择 + 选项 -->
+                                    <div class="frida-options-row">
+                                        <div class="frida-server-status">
+                                            <span class="frida-server-indicator" id="frida-server-indicator">⚪</span>
+                                            <span class="frida-server-label">Server:</span>
+                                            <span class="frida-server-value" id="frida-server-value">未检测</span>
+                                            <button class="frida-server-btn start" id="frida-module-start-server" title="启动Frida Server">启动</button>
+                                            <button class="frida-server-btn stop" id="frida-module-stop-server" title="停止Frida Server" style="display:none;">停止</button>
+                                        </div>
+                                        <div class="frida-target-group">
+                                            <label class="frida-label">目标:</label>
+                                            <select class="frida-target-select" id="frida-target-select">
+                                                <option value="current">当前APK</option>
+                                                <option value="device">设备应用</option>
+                                            </select>
+                                            <div class="frida-device-apps" id="frida-device-apps" style="display: none;">
+                                                <select class="frida-app-select" id="frida-app-select">
+                                                    <option value="">请选择应用...</option>
+                                                </select>
+                                                <button class="frida-refresh-apps-btn" id="frida-refresh-apps-btn" title="刷新应用列表">↻</button>
+                                            </div>
+                                        </div>
+                                        <div class="frida-options-group">
+                                            <label class="frida-checkbox-label">
+                                                <input type="checkbox" id="frida-spawn-mode" checked>
+                                                <span>Spawn模式</span>
+                                            </label>
+                                            <label class="frida-checkbox-label">
+                                                <input type="checkbox" id="frida-show-time" checked>
+                                                <span>显示时间</span>
+                                            </label>
+                                        </div>
+                                        <div class="frida-action-buttons">
+                                            <input type="text" class="frida-search-input" id="frida-search-input" placeholder="搜索输出...">
+                                            <button class="frida-clear-btn" id="frida-clear-btn">清空</button>
+                                            <button class="frida-export-btn" id="frida-export-btn">导出</button>
+                                        </div>
+                                    </div>
+                                    <!-- 输出区域 -->
+                                    <div class="frida-output-wrapper">
+                                        <div class="frida-output" id="frida-output">
+                                            <div class="frida-output-placeholder">Frida脚本输出将在此显示...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -175,6 +362,14 @@
 
     <!-- Toast容器 -->
     <div id="toast-container"></div>
+
+    <!-- 全屏加载蒙层 -->
+    <div id="fullscreen-loading" class="fullscreen-loading">
+        <div class="fullscreen-loading-content">
+            <div class="fullscreen-loading-spinner"></div>
+            <div class="fullscreen-loading-text">加载中...</div>
+        </div>
+    </div>
 
     <!-- JADX源码查看蒙层 -->
     <div id="jadx-overlay" class="fullscreen-overlay hidden">
@@ -224,6 +419,65 @@
                         <div class="search-placeholder">选择左侧结果预览</div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Frida脚本保存确认对话框 -->
+    <div id="frida-save-dialog" class="modal-overlay hidden">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <span class="modal-title">添加脚本</span>
+                <button class="modal-close-btn" id="frida-save-dialog-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-script-path" id="frida-script-path-display"></div>
+                <p class="modal-question">是否保存到脚本列表？</p>
+                <p class="modal-desc">保存后可以在脚本列表中长期使用</p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" id="frida-use-temp-btn">仅本次使用</button>
+                <button class="modal-btn modal-btn-primary" id="frida-save-permanent-btn">保存到列表</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Frida脚本信息填写对话框 -->
+    <div id="frida-info-dialog" class="modal-overlay hidden">
+        <div class="modal-dialog modal-dialog-wide">
+            <div class="modal-header">
+                <span class="modal-title">填写脚本信息</span>
+                <button class="modal-close-btn" id="frida-info-dialog-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-form">
+                    <div class="modal-form-group">
+                        <label class="modal-label">脚本名称 <span class="required">*</span></label>
+                        <input type="text" class="modal-input" id="frida-script-name" placeholder="例如：Root检测绕过">
+                    </div>
+                    <div class="modal-form-group">
+                        <label class="modal-label">脚本ID <span class="required">*</span></label>
+                        <input type="text" class="modal-input" id="frida-script-id" placeholder="例如：root_bypass（英文，无空格）">
+                    </div>
+                    <div class="modal-form-group">
+                        <label class="modal-label">描述</label>
+                        <textarea class="modal-textarea" id="frida-script-desc" placeholder="脚本功能描述..."></textarea>
+                    </div>
+                    <div class="modal-form-group">
+                        <label class="modal-label">分类</label>
+                        <select class="modal-select" id="frida-script-category">
+                            <option value="monitor">监控Hook</option>
+                            <option value="bypass">绕过检测</option>
+                            <option value="crypto">加密分析</option>
+                            <option value="database">数据库</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" id="frida-info-cancel-btn">取消</button>
+                <button class="modal-btn modal-btn-primary" id="frida-info-save-btn">保存脚本</button>
             </div>
         </div>
     </div>

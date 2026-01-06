@@ -1,4 +1,4 @@
-const { invoke } = window.__TAURI__.core;
+const { invoke, convertFileSrc } = window.__TAURI__.core;
 
 // 复制到剪贴板函数（全局）
 window.copyToClipboard = function(text) {
@@ -68,12 +68,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const deviceIframe = document.getElementById('device-iframe');
     const loadingIndicator = document.getElementById('loading-indicator');
     const addApkBtn = document.getElementById('add-apk-btn');
-    const apkFileInput = document.getElementById('apk-file-input');
     const apkTabsContainer = document.getElementById('apk-tabs');
     const apkDetailContainer = document.getElementById('apk-detail');
     const taskIndicator = document.getElementById('task-indicator');
     const operationTabs = document.querySelectorAll('.operation-tab');
     const operationPanels = document.querySelectorAll('.operation-panel');
+    const fullscreenLoading = document.getElementById('fullscreen-loading');
 
     // 正在反编译的任务计数
     let decompilingCount = 0;
@@ -83,6 +83,52 @@ document.addEventListener('DOMContentLoaded', function() {
     let selectedApkIndex = -1;
     // 是否已连接设备
     let deviceConnected = false;
+
+    // ADB设备状态缓存
+    let adbDeviceCache = {
+        hasDevice: false,
+        installedPackages: new Map(), // packageName -> isInstalled
+        lastCheck: 0,
+        checking: false
+    };
+
+    // 预检测ADB设备状态
+    async function preCheckAdbStatus() {
+        if (adbDeviceCache.checking) return;
+        adbDeviceCache.checking = true;
+
+        try {
+            const deviceStatus = await invoke('check_adb_devices');
+            adbDeviceCache.hasDevice = (deviceStatus === 'has_devices');
+            adbDeviceCache.lastCheck = Date.now();
+
+            // 如果有设备，预加载当前选中APK的安装状态
+            if (adbDeviceCache.hasDevice && selectedApkIndex >= 0 && apkListData[selectedApkIndex]) {
+                const apk = apkListData[selectedApkIndex];
+                if (apk.packageName && !adbDeviceCache.installedPackages.has(apk.packageName)) {
+                    try {
+                        const result = await invoke('check_apk_installed', { packageName: apk.packageName });
+                        adbDeviceCache.installedPackages.set(apk.packageName, result.installed);
+                    } catch (e) {
+                        console.error('预检测安装状态失败:', e);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('预检测ADB状态失败:', e);
+            adbDeviceCache.hasDevice = false;
+        } finally {
+            adbDeviceCache.checking = false;
+        }
+    }
+
+    // 启动定期检测ADB状态（每10秒）
+    setInterval(() => {
+        preCheckAdbStatus();
+    }, 10000);
+
+    // 页面加载时立即检测
+    preCheckAdbStatus();
 
     // 获取当前案件信息
     const caseName = window.parent.currentCaseName || '未知案件';
@@ -136,7 +182,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('重新连接失败:', error);
             loadingIndicator.innerHTML = `
-                <div class="empty-state-icon">❌</div>
                 <div class="loading-text">重新连接失败: ${error}</div>
             `;
             reconnectBtn.disabled = false;
@@ -153,32 +198,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // 添加APK按钮事件
-    addApkBtn.addEventListener('click', function() {
+    // 添加APK按钮事件 - 使用Tauri文件对话框
+    addApkBtn.addEventListener('click', async function() {
         console.log('点击添加APK...');
-        apkFileInput.click();
-    });
-
-    // 处理文件选择
-    apkFileInput.addEventListener('change', async function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        console.log('选择了文件:', file.name);
-
-        // 检查文件是否为APK格式
-        if (!file.name.endsWith('.apk')) {
-            toast.show({
-                text: '请选择有效的APK文件',
-                color: 'error',
-                duration: 3000
-            });
-            return;
-        }
 
         try {
+            // 使用后端命令打开文件选择对话框
+            const selectedPath = await invoke('select_apk_file');
+
+            if (!selectedPath) {
+                console.log('用户取消选择');
+                return;
+            }
+
+            console.log('选择了文件:', selectedPath);
+
+            // 获取文件名
+            const pathParts = selectedPath.replace(/\\/g, '/').split('/');
+            const fileName = pathParts[pathParts.length - 1];
+
             addApkBtn.disabled = true;
-            addApkBtn.textContent = '上传中...';
+            addApkBtn.textContent = '复制中...';
 
             // 创建时间戳文件夹
             const timestamp = Date.now();
@@ -189,25 +229,29 @@ document.addEventListener('DOMContentLoaded', function() {
             await invoke('create_dir', { dirname: apkDir });
             console.log('已创建APK目录:', apkDir);
 
-            // 读取文件内容并保存为 base.apk
-            const fileBuffer = await file.arrayBuffer();
-            const fileData = Array.from(new Uint8Array(fileBuffer));
+            // 获取当前工作目录以构建完整目标路径
+            const currentDir = await invoke('get_current_dir');
+            const destPath = `${currentDir}/${apkDir}/base.apk`.replace(/\\/g, '/');
 
-            // 保存文件为 base.apk（二进制方式）
-            const filePath = `${apkDir}/base.apk`;
-            await invoke('write_binary_file', {
-                filename: filePath,
-                data: fileData
+            // 使用后端复制文件（避免大文件通过JS传输）
+            await invoke('copy_file', {
+                source: selectedPath,
+                destination: destPath
             });
 
-            console.log('APK上传成功:', filePath);
+            console.log('APK复制成功:', destPath);
+
+            // 获取文件大小
+            const fileInfo = await invoke('read_file', { filename: `${apkDir}/base.apk` }).catch(() => null);
+            // 通过文件系统获取文件大小，这里简化处理
 
             // 创建信息JSON文件
             const apkInfo = {
-                originalName: file.name,
+                originalName: fileName,
                 uploadTime: uploadTime,
-                fileSize: file.size,
-                timestamp: timestamp
+                fileSize: 0, // 将由后端在get_apk_list时更新
+                timestamp: timestamp,
+                sourcePath: selectedPath
             };
 
             const infoPath = `${apkDir}/info.json`;
@@ -220,10 +264,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             addApkBtn.textContent = '+ 添加';
             addApkBtn.disabled = false;
-            apkFileInput.value = '';
 
             toast.show({
-                text: 'APK上传成功，开始反编译...',
+                text: 'APK添加成功，开始反编译...',
                 color: 'success',
                 duration: 3000
             });
@@ -231,19 +274,18 @@ document.addEventListener('DOMContentLoaded', function() {
             // 先刷新列表显示正在反编译状态
             await refreshApkList();
 
-            // 同时启动反编译和预分析（异步，不阻塞）
+            // 启动反编译（异步，不阻塞）
+            const filePath = `${apkDir}/base.apk`;
             decompileApk(filePath, apkDir, timestamp);
-            preanalyzeApkDetails(apkDir);
         } catch (error) {
-            console.error('APK上传失败:', error);
+            console.error('APK添加失败:', error);
             toast.show({
-                text: `APK上传失败: ${error}`,
+                text: `APK添加失败: ${error}`,
                 color: 'error',
                 duration: 3000
             });
             addApkBtn.textContent = '+ 添加';
             addApkBtn.disabled = false;
-            apkFileInput.value = '';
         }
     });
 
@@ -288,6 +330,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: 'success',
                 duration: 3000
             });
+
+            // 反编译成功后进行预分析（此时AndroidManifest.xml已生成）
+            preanalyzeApkDetails(apkDir);
 
             // 刷新列表并自动选中新反编译的APK
             await refreshApkListAndSelect(timestamp);
@@ -431,7 +476,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const iconHtml = apk.iconPath
-                ? `<img src="file://${apk.iconPath}" alt="icon" onerror="this.parentElement.innerHTML='<span class=\\'apk-tab-icon-placeholder\\'>📦</span>'">`
+                ? `<img src="${convertFileSrc(apk.iconPath)}" alt="icon" onerror="this.parentElement.innerHTML='<span class=\\'apk-tab-icon-placeholder\\'>📦</span>'">`
                 : '<span class="apk-tab-icon-placeholder">📦</span>';
 
             const spinnerHtml = !apk.isDecompiled ? '<div class="apk-tab-spinner"></div>' : '';
@@ -469,17 +514,127 @@ document.addEventListener('DOMContentLoaded', function() {
         menu.style.left = event.pageX + 'px';
         menu.style.top = event.pageY + 'px';
 
-        // 如果已连接设备，显示安装选项
-        if (deviceConnected) {
-            const installItem = document.createElement('div');
+        // 使用缓存快速判断是否有设备
+        const cacheAge = Date.now() - adbDeviceCache.lastCheck;
+        const cacheValid = cacheAge < 15000; // 缓存有效期15秒
+
+        let installItem = null;
+
+        if (cacheValid && adbDeviceCache.hasDevice) {
+            // 缓存有效且有设备
+            installItem = document.createElement('div');
             installItem.className = 'apk-context-menu-item';
-            installItem.textContent = '安装';
+
+            // 检查是否有缓存的安装状态
+            if (apk.packageName && adbDeviceCache.installedPackages.has(apk.packageName)) {
+                const isInstalled = adbDeviceCache.installedPackages.get(apk.packageName);
+                installItem.textContent = isInstalled ? '重新安装' : '安装';
+            } else {
+                // 没有缓存安装状态，显示加载中并异步检测
+                installItem.className = 'apk-context-menu-item loading';
+                installItem.innerHTML = '<span class="menu-spinner"></span>检测中...';
+
+                if (apk.packageName) {
+                    invoke('check_apk_installed', { packageName: apk.packageName })
+                        .then(result => {
+                            adbDeviceCache.installedPackages.set(apk.packageName, result.installed);
+                            if (installItem && installItem.parentNode) {
+                                installItem.classList.remove('loading');
+                                installItem.textContent = result.installed ? '重新安装' : '安装';
+                            }
+                        })
+                        .catch(e => {
+                            console.error('检查安装状态失败:', e);
+                            if (installItem && installItem.parentNode) {
+                                installItem.classList.remove('loading');
+                                installItem.textContent = '安装';
+                            }
+                        });
+                } else {
+                    installItem.classList.remove('loading');
+                    installItem.textContent = '安装';
+                }
+            }
+
             installItem.addEventListener('click', () => {
                 menu.remove();
                 installApkToDevice(apk);
             });
             menu.appendChild(installItem);
+        } else if (cacheValid && !adbDeviceCache.hasDevice) {
+            // 缓存有效但无设备，不显示安装按钮
+        } else {
+            // 缓存无效，需要检测
+            installItem = document.createElement('div');
+            installItem.className = 'apk-context-menu-item loading';
+            installItem.innerHTML = '<span class="menu-spinner"></span>检测中...';
+            menu.appendChild(installItem);
+
+            // 异步检查设备和安装状态
+            (async () => {
+                try {
+                    const deviceStatus = await invoke('check_adb_devices');
+                    adbDeviceCache.hasDevice = (deviceStatus === 'has_devices');
+                    adbDeviceCache.lastCheck = Date.now();
+
+                    if (adbDeviceCache.hasDevice) {
+                        // 有设备，检查是否已安装
+                        let isInstalled = false;
+                        if (apk.packageName) {
+                            try {
+                                const result = await invoke('check_apk_installed', { packageName: apk.packageName });
+                                isInstalled = result.installed;
+                                adbDeviceCache.installedPackages.set(apk.packageName, isInstalled);
+                            } catch (e) {
+                                console.error('检查安装状态失败:', e);
+                            }
+                        }
+
+                        // 更新按钮状态
+                        if (installItem && installItem.parentNode) {
+                            installItem.classList.remove('loading');
+                            installItem.textContent = isInstalled ? '重新安装' : '安装';
+                            installItem.addEventListener('click', () => {
+                                menu.remove();
+                                installApkToDevice(apk);
+                            });
+                        }
+                    } else {
+                        // 无设备，移除安装按钮
+                        if (installItem && installItem.parentNode) {
+                            installItem.remove();
+                        }
+                    }
+                } catch (e) {
+                    console.error('检查ADB设备失败:', e);
+                    if (installItem && installItem.parentNode) {
+                        installItem.remove();
+                    }
+                }
+            })();
         }
+
+        // 在文件夹中打开
+        const openFolderItem = document.createElement('div');
+        openFolderItem.className = 'apk-context-menu-item';
+        openFolderItem.textContent = '在文件夹中打开';
+        openFolderItem.addEventListener('click', () => {
+            menu.remove();
+            const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
+            invoke('open_file', { path: apkDir })
+                .then(() => {
+                    console.log('已打开文件夹:', apkDir);
+                })
+                .catch(err => {
+                    console.error('打开文件夹失败:', err);
+                    toast.show({
+                        text: `打开文件夹失败: ${err}`,
+                        color: 'error',
+                        duration: 3000
+                    });
+                });
+        });
+        menu.appendChild(openFolderItem);
 
         const deleteItem = document.createElement('div');
         deleteItem.className = 'apk-context-menu-item';
@@ -517,6 +672,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             await invoke('install_apk', { apkPath: apkPath });
+            // 更新缓存：标记为已安装
+            if (apk.packageName) {
+                adbDeviceCache.installedPackages.set(apk.packageName, true);
+            }
             toast.show({
                 text: `${appName} 安装成功`,
                 color: 'success',
@@ -630,9 +789,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 loadPermissions(apkListData[index]);
             } else if (activeTab.dataset.tab === 'details') {
                 loadDetails(apkListData[index]);
+            } else if (activeTab.dataset.tab === 'services') {
+                loadThirdPartyServices(apkListData[index]);
             } else if (activeTab.dataset.tab === 'sensitive') {
                 // 切换APK时刷新敏感信息面板
                 refreshSensitiveUI();
+            } else if (activeTab.dataset.tab === 'capture') {
+                // 切换APK时刷新抓包会话列表并清空数据包显示
+                loadCaptureSessions();
+                // 清空数据包列表和详情
+                captureState.selectedSessionId = null;
+                captureState.packets = [];
+                captureState.selectedPacketIndex = -1;
+                capturePacketsBody.innerHTML = '';
+                capturePacketsPlaceholder.classList.remove('hidden');
+                capturePacketsTableWrapper.classList.remove('visible');
+                capturePacketDetail.classList.remove('visible');
+                packetsTitle.textContent = '数据包列表';
             }
         }
     }
@@ -645,7 +818,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const iconHtml = apk.iconPath
-            ? `<img src="file://${apk.iconPath}" alt="icon" onerror="this.parentElement.innerHTML='<span class=\\'apk-detail-icon-placeholder\\'>📦</span>'">`
+            ? `<img src="${convertFileSrc(apk.iconPath)}" alt="icon" onerror="this.parentElement.innerHTML='<span class=\\'apk-detail-icon-placeholder\\'>📦</span>'">`
             : '<span class="apk-detail-icon-placeholder">📦</span>';
 
         const statusHtml = apk.isDecompiled
@@ -683,9 +856,18 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
     }
 
+    // 隐藏全屏加载蒙层
+    function hideFullscreenLoading() {
+        if (fullscreenLoading) {
+            fullscreenLoading.classList.add('hidden');
+        }
+    }
+
     // 初始化页面时加载APK列表
     async function initApkPanel() {
         await refreshApkList();
+        // APK列表加载完成后隐藏全屏加载蒙层
+        hideFullscreenLoading();
     }
 
     // 获取设置
@@ -711,12 +893,19 @@ document.addEventListener('DOMContentLoaded', function() {
             const autoConnect = settings.adb?.autoConnect ?? true;
 
             if (!autoConnect && !forceConnect) {
-                // 自动连接已关闭且非强制连接，显示提示
+                // 自动连接已关闭且非强制连接，显示简洁提示
                 loadingIndicator.innerHTML = `
-                    <div class="loading-text">自动连接已关闭，点击重连按钮手动连接</div>
+                    <div class="loading-text">点击重连按钮连接手机</div>
                 `;
                 return;
             }
+
+            // 显示连接中状态
+            loadingIndicator.classList.remove('hidden');
+            loadingIndicator.innerHTML = `
+                <div class="spinner"></div>
+                <div class="loading-text">连接手机中...</div>
+            `;
 
             // 检查是否有可用的设备
             const response = await invoke('check_adb_devices', {});
@@ -726,16 +915,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 有设备，启动scrcpy
                 await startScrcpy();
             } else if (response === 'no_devices') {
-                // 没有设备，隐藏加载指示器，显示提示
+                // 没有设备，显示提示
                 loadingIndicator.innerHTML = `
-                    <div class="empty-state-icon">📱</div>
                     <div class="loading-text">未检测到连接的设备</div>
                 `;
             }
         } catch (error) {
             console.error('初始化设备失败:', error);
             loadingIndicator.innerHTML = `
-                <div class="empty-state-icon">❌</div>
                 <div class="loading-text">设备初始化失败</div>
             `;
         }
@@ -764,7 +951,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const loadTimeout = setTimeout(() => {
                     if (!loadingIndicator.classList.contains('hidden')) {
                         loadingIndicator.innerHTML = `
-                            <div class="empty-state-icon">⚠️</div>
                             <div class="loading-text">连接超时，请重试</div>
                         `;
                     }
@@ -782,7 +968,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error('iframe加载失败');
                     deviceConnected = false;
                     loadingIndicator.innerHTML = `
-                        <div class="empty-state-icon">❌</div>
                         <div class="loading-text">连接失败，请检查设备</div>
                     `;
                 };
@@ -790,15 +975,14 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('启动scrcpy失败:', error);
             loadingIndicator.innerHTML = `
-                <div class="empty-state-icon">❌</div>
                 <div class="loading-text">启动投屏失败: ${error}</div>
             `;
         }
     }
 
-    // 页面加载时初始化
-    initializeDevice();
+    // 页面加载时初始化 - 先加载APK列表，再初始化设备（不阻塞）
     initApkPanel();
+    initializeDevice();
 
     // 操作区切换栏点击事件
     operationTabs.forEach(tab => {
@@ -831,28 +1015,39 @@ document.addEventListener('DOMContentLoaded', function() {
             if (targetTab === 'details' && selectedApkIndex >= 0) {
                 loadDetails(apkListData[selectedApkIndex]);
             }
+
+            // 切换到第三方服务面板时加载数据
+            if (targetTab === 'services' && selectedApkIndex >= 0) {
+                loadThirdPartyServices(apkListData[selectedApkIndex]);
+            }
         });
     });
 
     // 加载总览信息
     async function loadOverview(apk) {
+        const basicInfoContent = document.getElementById('overview-basic-info-content');
         const permissionsContent = document.getElementById('overview-permissions-content');
         const signatureContent = document.getElementById('overview-signature-content');
         const ipContent = document.getElementById('overview-ip-content');
 
         if (!apk) {
-            permissionsContent.innerHTML = '<div class="overview-placeholder">请先选择一个APK</div>';
-            signatureContent.innerHTML = '<div class="overview-placeholder">请先选择一个APK</div>';
-            ipContent.innerHTML = '<div class="overview-placeholder">请先选择一个APK</div>';
+            basicInfoContent.innerHTML = '<div class="overview-placeholder">上传一个apk开始分析</div>';
+            permissionsContent.innerHTML = '<div class="overview-placeholder">上传一个apk开始分析</div>';
+            signatureContent.innerHTML = '<div class="overview-placeholder">上传一个apk开始分析</div>';
+            ipContent.innerHTML = '<div class="overview-placeholder">上传一个apk开始分析</div>';
             return;
         }
 
         if (!apk.isDecompiled) {
+            basicInfoContent.innerHTML = '<div class="overview-placeholder">APK正在反编译中...</div>';
             permissionsContent.innerHTML = '<div class="overview-placeholder">APK正在反编译中...</div>';
             signatureContent.innerHTML = '<div class="overview-placeholder">APK正在反编译中...</div>';
             ipContent.innerHTML = '<div class="overview-placeholder">APK正在反编译中...</div>';
             return;
         }
+
+        // 加载基本信息
+        renderOverviewBasicInfo(apk);
 
         // 加载权限统计
         loadOverviewPermissions(apk);
@@ -862,6 +1057,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // 加载IP检测
         loadOverviewIPs(apk);
+    }
+
+    // 渲染总览中的基本信息
+    function renderOverviewBasicInfo(apk) {
+        const basicInfoContent = document.getElementById('overview-basic-info-content');
+
+        const infoItems = [
+            { label: '程序入口', value: apk.mainActivity || '-' },
+            { label: '版本代码', value: apk.versionCode || '-' },
+            { label: '版本号', value: apk.versionName || '-' },
+            { label: '最小SDK', value: apk.minSdk ? `API ${apk.minSdk}` : '-' },
+            { label: '目标SDK', value: apk.targetSdk ? `API ${apk.targetSdk}` : '-' }
+        ];
+
+        basicInfoContent.innerHTML = `
+            <div class="basic-info-grid">
+                ${infoItems.map(item => `
+                    <div class="basic-info-item">
+                        <span class="basic-info-label">${item.label}</span>
+                        <span class="basic-info-value" title="${item.value}">${item.value}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
     }
 
     // 加载总览中的权限统计
@@ -928,6 +1147,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         permissionsContent.innerHTML = `<div class="overview-stats-row">${html}</div>`;
+
+        // 添加横向滚动支持：鼠标滚轮直接横向滚动
+        const statsRow = permissionsContent.querySelector('.overview-stats-row');
+        if (statsRow) {
+            statsRow.addEventListener('wheel', (e) => {
+                // 检查是否可以横向滚动
+                const canScrollHorizontally = statsRow.scrollWidth > statsRow.clientWidth;
+                if (canScrollHorizontally) {
+                    e.preventDefault();
+                    statsRow.scrollBy({
+                        left: e.deltaY,
+                        behavior: 'smooth'
+                    });
+                }
+                // 如果不能横向滚动，则不阻止默认行为，允许页面正常上下滚动
+            }, { passive: false });
+        }
     }
 
     // 加载总览中的签名信息
@@ -1409,7 +1645,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const detailsPanel = document.getElementById('tab-details');
 
         if (!apk) {
-            detailsPanel.innerHTML = '<div class="operation-panel-placeholder">请先选择一个APK</div>';
+            detailsPanel.innerHTML = '<div class="operation-panel-placeholder">上传一个apk开始分析</div>';
             return;
         }
 
@@ -1435,7 +1671,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 渲染详细信息
     function renderDetails(data, apk) {
         const detailsPanel = document.getElementById('tab-details');
-        const { hashes, signature } = data;
+        const { hashes, components, signature } = data;
 
         // 构建文件哈希部分
         const hashesHtml = `
@@ -1457,6 +1693,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
         `;
+
+        // 构建四大组件部分
+        const componentsHtml = buildComponentsHtml(components);
 
         // 构建签名信息部分
         let signatureHtml = '';
@@ -1550,9 +1789,86 @@ document.addEventListener('DOMContentLoaded', function() {
         detailsPanel.innerHTML = `
             <div class="details-container">
                 ${hashesHtml}
+                ${componentsHtml}
                 ${signatureHtml}
             </div>
         `;
+
+        // 初始化组件折叠/展开功能
+        initComponentsToggle();
+    }
+
+    // 构建四大组件HTML
+    function buildComponentsHtml(components) {
+        if (!components) {
+            return '';
+        }
+
+        const componentTypes = [
+            { key: 'activities', name: 'Activity' },
+            { key: 'services', name: 'Service' },
+            { key: 'receivers', name: 'Receiver' },
+            { key: 'providers', name: 'Provider' }
+        ];
+
+        let html = '<div class="details-section components-section">';
+        html += '<div class="details-section-title">四大组件</div>';
+        html += '<div class="components-wrapper">';
+
+        for (const type of componentTypes) {
+            const items = components[type.key] || [];
+            const count = items.length;
+
+            html += `
+                <div class="component-group" data-component="${type.key}">
+                    <div class="component-header">
+                        <div class="component-header-left">
+                            <span class="component-name">${type.name}</span>
+                            <span class="component-count">${count}</span>
+                        </div>
+                        <div class="component-toggle collapsed">
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                    </div>
+                    <div class="component-content collapsed">
+                        <div class="component-list">
+                            ${items.length > 0
+                                ? items.map(item => `<div class="component-item" title="${item}">${item}</div>`).join('')
+                                : '<div class="component-empty">无</div>'
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        html += '</div></div>';
+        return html;
+    }
+
+    // 初始化组件折叠/展开功能
+    function initComponentsToggle() {
+        const componentGroups = document.querySelectorAll('.component-group');
+
+        componentGroups.forEach(group => {
+            const header = group.querySelector('.component-header');
+            const toggle = group.querySelector('.component-toggle');
+            const content = group.querySelector('.component-content');
+
+            header.addEventListener('click', () => {
+                const isCollapsed = content.classList.contains('collapsed');
+
+                if (isCollapsed) {
+                    // 展开
+                    content.classList.remove('collapsed');
+                    toggle.classList.remove('collapsed');
+                } else {
+                    // 收起
+                    content.classList.add('collapsed');
+                    toggle.classList.add('collapsed');
+                }
+            });
+        });
     }
 
     // HTML转义函数
@@ -1562,12 +1878,124 @@ document.addEventListener('DOMContentLoaded', function() {
         return div.innerHTML;
     }
 
+    // 加载第三方服务分析
+    async function loadThirdPartyServices(apk) {
+        const servicesPanel = document.getElementById('tab-services');
+
+        if (!apk) {
+            servicesPanel.innerHTML = '<div class="operation-panel-placeholder">上传一个apk开始分析</div>';
+            return;
+        }
+
+        if (!apk.isDecompiled) {
+            servicesPanel.innerHTML = '<div class="operation-panel-placeholder">APK正在反编译中，请稍候...</div>';
+            return;
+        }
+
+        // 显示加载状态
+        servicesPanel.innerHTML = '<div class="services-loading"><div class="spinner"></div><span>正在分析第三方服务...</span></div>';
+
+        try {
+            const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
+            const result = await invoke('analyze_third_party_services', { apkDir: apkDir });
+
+            if (!result.success) {
+                servicesPanel.innerHTML = `<div class="operation-panel-placeholder">${result.message}</div>`;
+                return;
+            }
+
+            renderThirdPartyServices(result);
+        } catch (error) {
+            console.error('分析第三方服务失败:', error);
+            servicesPanel.innerHTML = `<div class="operation-panel-placeholder">分析第三方服务失败: ${error}</div>`;
+        }
+    }
+
+    // 渲染第三方服务
+    function renderThirdPartyServices(data) {
+        const servicesPanel = document.getElementById('tab-services');
+        const { packers, sdks, forensics, libraries, summary } = data;
+
+        // 构建各部分HTML
+        const sectionsHtml = [];
+
+        // 打包服务商
+        sectionsHtml.push(buildServiceSection('打包服务商', packers, 'packers', summary.packersCount));
+
+        // SDK服务商
+        sectionsHtml.push(buildServiceSection('SDK服务商', sdks, 'sdks', summary.sdksCount));
+
+        // 疑似调证值
+        sectionsHtml.push(buildServiceSection('疑似调证值', forensics, 'forensics', summary.forensicsCount, true));
+
+        // 第三方库
+        sectionsHtml.push(buildServiceSection('第三方库', libraries, 'libraries', summary.librariesCount));
+
+        servicesPanel.innerHTML = `
+            <div class="services-container">
+                ${sectionsHtml.join('')}
+            </div>
+        `;
+    }
+
+    // 构建服务分类区块
+    function buildServiceSection(title, items, type, count, showEvidence = false) {
+        const isEmpty = !items || items.length === 0;
+
+        let itemsHtml = '';
+        if (isEmpty) {
+            itemsHtml = '<div class="services-empty">未检测到</div>';
+        } else {
+            // 按type分组
+            const groupedItems = {};
+            for (const item of items) {
+                const itemType = item.type || '其他';
+                if (!groupedItems[itemType]) {
+                    groupedItems[itemType] = [];
+                }
+                groupedItems[itemType].push(item);
+            }
+
+            // 渲染分组
+            for (const [groupType, groupItems] of Object.entries(groupedItems)) {
+                itemsHtml += `<div class="services-group">`;
+                itemsHtml += `<div class="services-group-title">${groupType}</div>`;
+                itemsHtml += `<div class="services-group-items">`;
+                for (const item of groupItems) {
+                    const evidenceHtml = showEvidence && item.evidence
+                        ? `<span class="service-evidence">${item.evidence}</span>`
+                        : '';
+                    itemsHtml += `
+                        <div class="service-item">
+                            <span class="service-name">${item.name}</span>
+                            <span class="service-package">${item.package}</span>
+                            ${evidenceHtml}
+                        </div>
+                    `;
+                }
+                itemsHtml += `</div></div>`;
+            }
+        }
+
+        return `
+            <div class="services-section" data-type="${type}">
+                <div class="services-section-header">
+                    <span class="services-section-title">${title}</span>
+                    <span class="services-section-count">${count}</span>
+                </div>
+                <div class="services-section-content">
+                    ${itemsHtml}
+                </div>
+            </div>
+        `;
+    }
+
     // 加载APK权限
     async function loadPermissions(apk) {
         const permissionsPanel = document.getElementById('tab-permissions');
 
         if (!apk) {
-            permissionsPanel.innerHTML = '<div class="operation-panel-placeholder">请先选择一个APK</div>';
+            permissionsPanel.innerHTML = '<div class="operation-panel-placeholder">上传一个apk开始分析</div>';
             return;
         }
 
@@ -1964,8 +2392,17 @@ document.addEventListener('DOMContentLoaded', function() {
         return icons[ext] || '📄';
     }
 
+    // 媒体文件扩展名
+    const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'];
+    const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'flac', 'm4a', 'wma'];
+    const videoExtensions = ['mp4', 'webm', 'mov', 'avi', 'mkv', 'm4v', '3gp'];
+
+    // 当前媒体查看模式 ('preview' 或 'hex')
+    let currentMediaViewMode = 'preview';
+
     // 选中文件
-    async function selectFile(filePath, page = 0) {
+    // mode: 'auto' | 'preview' | 'hex' - 控制媒体文件的显示模式
+    async function selectFile(filePath, page = 0, mode = 'auto') {
         const apk = apkListData[selectedApkIndex];
         const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
 
@@ -1982,6 +2419,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
         jadxMain.innerHTML = '<div class="jadx-placeholder">加载中...</div>';
 
+        // 检查文件类型
+        const ext = filePath.split('.').pop().toLowerCase();
+        const isImage = imageExtensions.includes(ext);
+        const isAudio = audioExtensions.includes(ext);
+        const isVideo = videoExtensions.includes(ext);
+        const isMedia = isImage || isAudio || isVideo;
+
+        // 确定显示模式
+        if (mode === 'auto') {
+            currentMediaViewMode = isMedia ? 'preview' : 'hex';
+        } else {
+            currentMediaViewMode = mode;
+        }
+
+        // 媒体文件且为预览模式
+        if (isMedia && currentMediaViewMode === 'preview') {
+            if (isImage) {
+                renderImageView(apkDir, filePath, ext);
+            } else if (isAudio) {
+                renderAudioView(apkDir, filePath, ext);
+            } else if (isVideo) {
+                renderVideoView(apkDir, filePath, ext);
+            }
+            return;
+        }
+
+        // 非媒体文件或二进制模式
         try {
             // 加载设置中的每页大小
             const settings = await getSettings();
@@ -1999,11 +2463,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            if (result.is_binary) {
-                // 二进制文件，使用Hex查看器
+            if (result.is_binary || isMedia) {
+                // 二进制文件或媒体文件的二进制模式，使用Hex查看器
                 currentBinaryData = result;
                 currentEncoding = 'ascii';
-                renderHexView(result);
+                renderHexView(result, isMedia);
             } else {
                 // 文本文件，正常渲染
                 currentBinaryData = null;
@@ -2014,8 +2478,220 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // 渲染图片视图
+    function renderImageView(apkDir, filePath, ext) {
+        const container = document.createElement('div');
+        container.className = 'image-viewer-container';
+
+        // 构建图片的完整路径
+        const fullPath = `${apkDir}/jadx/${filePath}`;
+
+        // 获取当前工作目录并构建完整的文件路径
+        invoke('get_current_dir').then(currentDir => {
+            const absolutePath = `${currentDir}/${fullPath}`.replace(/\\/g, '/');
+            const imageUrl = convertFileSrc(absolutePath);
+
+            // 工具栏
+            const toolbar = document.createElement('div');
+            toolbar.className = 'media-toolbar';
+            toolbar.innerHTML = `
+                <span class="media-info">图片文件 | ${ext.toUpperCase()}</span>
+                <div class="media-controls">
+                    <button id="image-zoom-out" class="media-control-btn" title="缩小">−</button>
+                    <span id="image-zoom-level" class="media-zoom-level">100%</span>
+                    <button id="image-zoom-in" class="media-control-btn" title="放大">+</button>
+                    <button id="image-zoom-fit" class="media-control-btn" title="适应窗口">⊡</button>
+                    <button id="image-zoom-actual" class="media-control-btn" title="实际大小">1:1</button>
+                    <span class="media-divider"></span>
+                    <button id="media-view-hex" class="media-control-btn media-mode-btn" title="查看二进制">HEX</button>
+                </div>
+            `;
+
+            // 图片容器
+            const imageWrapper = document.createElement('div');
+            imageWrapper.className = 'image-wrapper';
+
+            const img = document.createElement('img');
+            img.className = 'preview-image';
+            img.src = imageUrl;
+            img.alt = filePath;
+
+            let currentZoom = 100;
+
+            img.onload = () => {
+                // 更新工具栏显示图片尺寸
+                const sizeInfo = document.createElement('span');
+                sizeInfo.className = 'media-size-info';
+                sizeInfo.textContent = ` | ${img.naturalWidth} × ${img.naturalHeight}`;
+                toolbar.querySelector('.media-info').appendChild(sizeInfo);
+            };
+
+            img.onerror = () => {
+                imageWrapper.innerHTML = '<div class="jadx-placeholder">图片加载失败</div>';
+            };
+
+            imageWrapper.appendChild(img);
+            container.appendChild(toolbar);
+            container.appendChild(imageWrapper);
+
+            jadxMain.innerHTML = '';
+            jadxMain.appendChild(container);
+
+            // 缩放控制
+            const zoomOut = document.getElementById('image-zoom-out');
+            const zoomIn = document.getElementById('image-zoom-in');
+            const zoomFit = document.getElementById('image-zoom-fit');
+            const zoomActual = document.getElementById('image-zoom-actual');
+            const zoomLevel = document.getElementById('image-zoom-level');
+
+            const updateZoom = (zoom) => {
+                currentZoom = Math.max(10, Math.min(500, zoom));
+                img.style.transform = `scale(${currentZoom / 100})`;
+                zoomLevel.textContent = `${currentZoom}%`;
+            };
+
+            zoomOut.addEventListener('click', () => updateZoom(currentZoom - 25));
+            zoomIn.addEventListener('click', () => updateZoom(currentZoom + 25));
+            zoomActual.addEventListener('click', () => updateZoom(100));
+            zoomFit.addEventListener('click', () => {
+                const wrapperRect = imageWrapper.getBoundingClientRect();
+                const scaleX = (wrapperRect.width - 40) / img.naturalWidth;
+                const scaleY = (wrapperRect.height - 40) / img.naturalHeight;
+                const fitZoom = Math.min(scaleX, scaleY, 1) * 100;
+                updateZoom(Math.round(fitZoom));
+            });
+
+            // 鼠标滚轮缩放
+            imageWrapper.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -10 : 10;
+                updateZoom(currentZoom + delta);
+            });
+
+            // 切换到二进制模式
+            document.getElementById('media-view-hex').addEventListener('click', () => {
+                selectFile(filePath, 0, 'hex');
+            });
+        }).catch(error => {
+            jadxMain.innerHTML = `<div class="jadx-placeholder">加载图片失败: ${error}</div>`;
+        });
+    }
+
+    // 渲染音频视图
+    function renderAudioView(apkDir, filePath, ext) {
+        const container = document.createElement('div');
+        container.className = 'media-viewer-container';
+
+        // 构建音频的完整路径
+        const fullPath = `${apkDir}/jadx/${filePath}`;
+
+        invoke('get_current_dir').then(currentDir => {
+            const absolutePath = `${currentDir}/${fullPath}`.replace(/\\/g, '/');
+            const audioUrl = convertFileSrc(absolutePath);
+
+            // 工具栏
+            const toolbar = document.createElement('div');
+            toolbar.className = 'media-toolbar';
+            toolbar.innerHTML = `
+                <span class="media-info">音频文件 | ${ext.toUpperCase()}</span>
+                <div class="media-controls">
+                    <button id="media-view-hex" class="media-control-btn media-mode-btn" title="查看二进制">HEX</button>
+                </div>
+            `;
+
+            // 音频播放器容器
+            const audioWrapper = document.createElement('div');
+            audioWrapper.className = 'audio-wrapper';
+
+            const audioIcon = document.createElement('div');
+            audioIcon.className = 'audio-icon';
+            audioIcon.innerHTML = '🎵';
+
+            const audio = document.createElement('audio');
+            audio.className = 'audio-player';
+            audio.controls = true;
+            audio.src = audioUrl;
+
+            const audioInfo = document.createElement('div');
+            audioInfo.className = 'audio-file-info';
+            audioInfo.textContent = filePath.split('/').pop();
+
+            audio.onerror = () => {
+                audioWrapper.innerHTML = '<div class="jadx-placeholder">音频加载失败，格式可能不受支持</div>';
+            };
+
+            audioWrapper.appendChild(audioIcon);
+            audioWrapper.appendChild(audio);
+            audioWrapper.appendChild(audioInfo);
+            container.appendChild(toolbar);
+            container.appendChild(audioWrapper);
+
+            jadxMain.innerHTML = '';
+            jadxMain.appendChild(container);
+
+            // 切换到二进制模式
+            document.getElementById('media-view-hex').addEventListener('click', () => {
+                selectFile(filePath, 0, 'hex');
+            });
+        }).catch(error => {
+            jadxMain.innerHTML = `<div class="jadx-placeholder">加载音频失败: ${error}</div>`;
+        });
+    }
+
+    // 渲染视频视图
+    function renderVideoView(apkDir, filePath, ext) {
+        const container = document.createElement('div');
+        container.className = 'media-viewer-container';
+
+        // 构建视频的完整路径
+        const fullPath = `${apkDir}/jadx/${filePath}`;
+
+        invoke('get_current_dir').then(currentDir => {
+            const absolutePath = `${currentDir}/${fullPath}`.replace(/\\/g, '/');
+            const videoUrl = convertFileSrc(absolutePath);
+
+            // 工具栏
+            const toolbar = document.createElement('div');
+            toolbar.className = 'media-toolbar';
+            toolbar.innerHTML = `
+                <span class="media-info">视频文件 | ${ext.toUpperCase()}</span>
+                <div class="media-controls">
+                    <button id="media-view-hex" class="media-control-btn media-mode-btn" title="查看二进制">HEX</button>
+                </div>
+            `;
+
+            // 视频播放器容器
+            const videoWrapper = document.createElement('div');
+            videoWrapper.className = 'video-wrapper';
+
+            const video = document.createElement('video');
+            video.className = 'video-player';
+            video.controls = true;
+            video.src = videoUrl;
+
+            video.onerror = () => {
+                videoWrapper.innerHTML = '<div class="jadx-placeholder">视频加载失败，格式可能不受支持</div>';
+            };
+
+            videoWrapper.appendChild(video);
+            container.appendChild(toolbar);
+            container.appendChild(videoWrapper);
+
+            jadxMain.innerHTML = '';
+            jadxMain.appendChild(container);
+
+            // 切换到二进制模式
+            document.getElementById('media-view-hex').addEventListener('click', () => {
+                selectFile(filePath, 0, 'hex');
+            });
+        }).catch(error => {
+            jadxMain.innerHTML = `<div class="jadx-placeholder">加载视频失败: ${error}</div>`;
+        });
+    }
+
     // 渲染Hex视图
-    function renderHexView(data) {
+    // isMedia: 是否为媒体文件（可以切换回预览模式）
+    function renderHexView(data, isMedia = false) {
         const container = document.createElement('div');
         container.className = 'hex-viewer-container';
 
@@ -2029,9 +2705,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const startOffset = data.start_offset || 0;
         const endOffset = data.end_offset || data.file_size;
 
+        // 预览按钮（仅媒体文件显示）
+        const previewBtnHtml = isMedia
+            ? '<button id="hex-view-preview" class="hex-page-btn hex-preview-btn" title="预览">预览</button>'
+            : '';
+
         toolbar.innerHTML = `
             <span class="hex-info">二进制文件 | ${formatFileSize(data.file_size)} | 显示: ${formatFileSize(startOffset)} - ${formatFileSize(endOffset)}</span>
             <div class="hex-pagination">
+                ${previewBtnHtml}
                 <button id="hex-first-page" class="hex-page-btn" ${currentPage === 0 ? 'disabled' : ''} title="首页">⏮</button>
                 <button id="hex-prev-page" class="hex-page-btn" ${currentPage === 0 ? 'disabled' : ''} title="上一页">◀</button>
                 <span class="hex-page-info">${currentPage + 1} / ${totalPages}</span>
@@ -2123,25 +2805,25 @@ document.addEventListener('DOMContentLoaded', function() {
         // 分页事件
         document.getElementById('hex-first-page').addEventListener('click', () => {
             if (currentPage > 0) {
-                selectFile(currentFilePath, 0);
+                selectFile(currentFilePath, 0, 'hex');
             }
         });
 
         document.getElementById('hex-prev-page').addEventListener('click', () => {
             if (currentPage > 0) {
-                selectFile(currentFilePath, currentPage - 1);
+                selectFile(currentFilePath, currentPage - 1, 'hex');
             }
         });
 
         document.getElementById('hex-next-page').addEventListener('click', () => {
             if (currentPage < totalPages - 1) {
-                selectFile(currentFilePath, currentPage + 1);
+                selectFile(currentFilePath, currentPage + 1, 'hex');
             }
         });
 
         document.getElementById('hex-last-page').addEventListener('click', () => {
             if (currentPage < totalPages - 1) {
-                selectFile(currentFilePath, totalPages - 1);
+                selectFile(currentFilePath, totalPages - 1, 'hex');
             }
         });
 
@@ -2151,12 +2833,22 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.key === 'Enter') {
                 const targetPage = parseInt(gotoInput.value, 10);
                 if (targetPage >= 1 && targetPage <= totalPages) {
-                    selectFile(currentFilePath, targetPage - 1);
+                    selectFile(currentFilePath, targetPage - 1, 'hex');
                 } else {
                     toast.show({ text: `页码范围: 1 - ${totalPages}`, color: 'warning', duration: 2000 });
                 }
             }
         });
+
+        // 预览按钮（媒体文件）
+        if (isMedia) {
+            const previewBtn = document.getElementById('hex-view-preview');
+            if (previewBtn) {
+                previewBtn.addEventListener('click', () => {
+                    selectFile(currentFilePath, 0, 'preview');
+                });
+            }
+        }
     }
 
     // 解码字节
@@ -2645,7 +3337,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function refreshSensitiveUI() {
         if (selectedApkIndex < 0) {
             sensitiveStats.innerHTML = '';
-            sensitiveList.innerHTML = '<div class="sensitive-placeholder">请先选择一个APK</div>';
+            sensitiveList.innerHTML = '<div class="sensitive-placeholder">上传一个apk开始分析</div>';
             sensitivePagination.innerHTML = '';
             sensitiveCodePath.textContent = '';
             sensitiveCodeContent.innerHTML = '<div class="sensitive-placeholder">选择左侧敏感信息查看代码位置</div>';
@@ -3181,4 +3873,1637 @@ document.addEventListener('DOMContentLoaded', function() {
         document.removeEventListener('mousemove', handleSensitiveResize);
         document.removeEventListener('mouseup', stopSensitiveResize);
     }
+
+    // ===================== 网络抓包模块 =====================
+
+    // 获取DOM元素
+    const fridaEnvStatus = document.getElementById('frida-env-status');
+    const fridaServerStatus = document.getElementById('frida-server-status');
+    const initFridaBtn = document.getElementById('init-frida-btn');
+    const startServerBtn = document.getElementById('start-server-btn');
+    const stopServerBtn = document.getElementById('stop-server-btn');
+    const captureTargetSelect = document.getElementById('capture-target-select');
+    const captureDeviceApps = document.getElementById('capture-device-apps');
+    const deviceAppSelect = document.getElementById('device-app-select');
+    const refreshAppsBtn = document.getElementById('refresh-apps-btn');
+    const captureSpawnMode = document.getElementById('capture-spawn-mode');
+    const startCaptureBtn = document.getElementById('start-capture-btn');
+    const stopCaptureBtn = document.getElementById('stop-capture-btn');
+    const refreshSessionsBtn = document.getElementById('refresh-sessions-btn');
+    const captureSessionsList = document.getElementById('capture-sessions-list');
+    const packetsTitle = document.getElementById('packets-title');
+    const packetsFilterInput = document.getElementById('packets-filter-input');
+    const capturePacketsBody = document.getElementById('capture-packets-body');
+    const capturePacketsPlaceholder = document.getElementById('capture-packets-placeholder');
+    const capturePacketsTableWrapper = document.querySelector('.capture-packets-table-wrapper');
+    const capturePacketDetail = document.getElementById('capture-packet-detail');
+    const packetDetailContent = document.getElementById('packet-detail-content');
+    const captureResizer = document.getElementById('capture-resizer');
+    const captureLeft = document.querySelector('.capture-left');
+
+    // 抓包状态
+    let captureState = {
+        fridaReady: false,
+        serverRunning: false,
+        capturing: false,
+        currentCaptureId: null,
+        currentSessionId: null,
+        selectedSessionId: null,
+        packets: [],
+        selectedPacketIndex: -1,
+        autoRefreshTimer: null
+    };
+
+    // 自动刷新数据包（抓包时每秒刷新一次）
+    function startAutoRefreshPackets() {
+        stopAutoRefreshPackets(); // 先清除已有的定时器
+        captureState.autoRefreshTimer = setInterval(async () => {
+            if (captureState.capturing && captureState.currentSessionId) {
+                await loadCapturePackets(captureState.currentSessionId);
+            }
+        }, 1000);
+    }
+
+    function stopAutoRefreshPackets() {
+        if (captureState.autoRefreshTimer) {
+            clearInterval(captureState.autoRefreshTimer);
+            captureState.autoRefreshTimer = null;
+        }
+    }
+
+    // 检查Frida环境状态
+    async function checkFridaEnv() {
+        try {
+            fridaEnvStatus.classList.remove('ready', 'error');
+            fridaEnvStatus.classList.add('loading');
+            fridaEnvStatus.querySelector('.status-icon').textContent = '🔄';
+            fridaEnvStatus.querySelector('.status-value').textContent = '检测中...';
+
+            const result = await invoke('check_frida_env');
+
+            fridaEnvStatus.classList.remove('loading');
+            if (result.ready) {
+                fridaEnvStatus.classList.add('ready');
+                fridaEnvStatus.querySelector('.status-icon').textContent = '🟢';
+                fridaEnvStatus.querySelector('.status-value').textContent = `v${result.version}`;
+                captureState.fridaReady = true;
+                initFridaBtn.disabled = true;
+                initFridaBtn.textContent = '已就绪';
+
+                // 检查frida-server状态
+                await checkFridaServerStatus();
+            } else {
+                fridaEnvStatus.classList.add('error');
+                fridaEnvStatus.querySelector('.status-icon').textContent = '🔴';
+                fridaEnvStatus.querySelector('.status-value').textContent = '未安装';
+                captureState.fridaReady = false;
+                initFridaBtn.disabled = false;
+                initFridaBtn.textContent = '初始化环境';
+                startServerBtn.disabled = true;
+            }
+        } catch (error) {
+            fridaEnvStatus.classList.remove('loading');
+            fridaEnvStatus.classList.add('error');
+            fridaEnvStatus.querySelector('.status-icon').textContent = '🔴';
+            fridaEnvStatus.querySelector('.status-value').textContent = '检测失败';
+            console.error('检查Frida环境失败:', error);
+        }
+    }
+
+    // 检查Frida Server状态
+    async function checkFridaServerStatus() {
+        try {
+            const result = await invoke('check_frida_server_status');
+
+            fridaServerStatus.classList.remove('ready', 'error', 'loading');
+            if (result.running) {
+                fridaServerStatus.classList.add('ready');
+                fridaServerStatus.querySelector('.status-icon').textContent = '🟢';
+                fridaServerStatus.querySelector('.status-value').textContent = '运行中';
+                captureState.serverRunning = true;
+                startServerBtn.disabled = true;
+                startServerBtn.textContent = '已启动';
+                startServerBtn.style.display = 'none';
+                stopServerBtn.style.display = 'inline-block';
+            } else {
+                fridaServerStatus.classList.add('error');
+                fridaServerStatus.querySelector('.status-icon').textContent = '🔴';
+                fridaServerStatus.querySelector('.status-value').textContent = '未启动';
+                captureState.serverRunning = false;
+                startServerBtn.disabled = !captureState.fridaReady;
+                startServerBtn.textContent = '启动服务';
+                startServerBtn.style.display = 'inline-block';
+                stopServerBtn.style.display = 'none';
+            }
+            updateCaptureButtons();
+        } catch (error) {
+            console.error('检查Frida Server状态失败:', error);
+        }
+    }
+
+    // 初始化Frida环境
+    initFridaBtn.addEventListener('click', async () => {
+        if (initFridaBtn.disabled) return;
+
+        initFridaBtn.disabled = true;
+        initFridaBtn.textContent = '初始化中...';
+
+        try {
+            toast.show({ text: '正在初始化Frida环境，请稍候...', color: 'info', duration: 5000 });
+
+            const result = await invoke('init_frida_env');
+
+            if (result.success) {
+                toast.show({ text: 'Frida环境初始化成功', color: 'success', duration: 3000 });
+                await checkFridaEnv();
+            }
+        } catch (error) {
+            toast.show({ text: `初始化失败: ${error}`, color: 'error', duration: 5000 });
+            initFridaBtn.disabled = false;
+            initFridaBtn.textContent = '初始化环境';
+        }
+    });
+
+    // 启动Frida Server
+    startServerBtn.addEventListener('click', async () => {
+        if (startServerBtn.disabled) return;
+
+        startServerBtn.disabled = true;
+        startServerBtn.textContent = '启动中...';
+        fridaServerStatus.classList.remove('ready', 'error');
+        fridaServerStatus.classList.add('loading');
+        fridaServerStatus.querySelector('.status-icon').textContent = '🔄';
+        fridaServerStatus.querySelector('.status-value').textContent = '启动中...';
+
+        try {
+            const result = await invoke('start_frida_server');
+
+            fridaServerStatus.classList.remove('loading');
+            if (result.success) {
+                fridaServerStatus.classList.add('ready');
+                fridaServerStatus.querySelector('.status-icon').textContent = '🟢';
+                fridaServerStatus.querySelector('.status-value').textContent = '运行中';
+                captureState.serverRunning = true;
+                startServerBtn.textContent = '已启动';
+                startServerBtn.style.display = 'none';
+                stopServerBtn.style.display = 'inline-block';
+                updateCaptureButtons();
+                toast.show({ text: result.message, color: 'success', duration: 3000 });
+            }
+        } catch (error) {
+            fridaServerStatus.classList.remove('loading');
+            fridaServerStatus.classList.add('error');
+            fridaServerStatus.querySelector('.status-icon').textContent = '🔴';
+            fridaServerStatus.querySelector('.status-value').textContent = '启动失败';
+            startServerBtn.disabled = false;
+            startServerBtn.textContent = '启动服务';
+            toast.show({ text: `启动失败: ${error}`, color: 'error', duration: 5000 });
+        }
+    });
+
+    // 停止Frida Server
+    stopServerBtn.addEventListener('click', async () => {
+        stopServerBtn.disabled = true;
+        stopServerBtn.textContent = '停止中...';
+
+        try {
+            const result = await invoke('stop_frida_server');
+
+            if (result.success) {
+                fridaServerStatus.classList.remove('ready');
+                fridaServerStatus.classList.add('error');
+                fridaServerStatus.querySelector('.status-icon').textContent = '🔴';
+                fridaServerStatus.querySelector('.status-value').textContent = '未启动';
+                captureState.serverRunning = false;
+                stopServerBtn.style.display = 'none';
+                startServerBtn.style.display = 'inline-block';
+                startServerBtn.disabled = false;
+                startServerBtn.textContent = '启动服务';
+                updateCaptureButtons();
+                toast.show({ text: result.message, color: 'success', duration: 3000 });
+            }
+        } catch (error) {
+            toast.show({ text: `停止失败: ${error}`, color: 'error', duration: 3000 });
+        } finally {
+            stopServerBtn.disabled = false;
+            stopServerBtn.textContent = '停止服务';
+        }
+    });
+
+    // 更新抓包按钮状态
+    function updateCaptureButtons() {
+        const canStart = captureState.fridaReady && captureState.serverRunning && !captureState.capturing;
+
+        if (captureTargetSelect.value === 'current') {
+            // 当前APK - 需要选中APK且已安装
+            if (selectedApkIndex >= 0 && apkListData[selectedApkIndex]) {
+                startCaptureBtn.disabled = !canStart;
+            } else {
+                startCaptureBtn.disabled = true;
+            }
+        } else {
+            // 设备上的APP - 需要选择应用
+            startCaptureBtn.disabled = !canStart || !deviceAppSelect.value;
+        }
+
+        stopCaptureBtn.disabled = !captureState.capturing;
+    }
+
+    // 切换抓包目标
+    captureTargetSelect.addEventListener('change', () => {
+        if (captureTargetSelect.value === 'device') {
+            captureDeviceApps.style.display = 'flex';
+            loadDeviceApps();
+        } else {
+            captureDeviceApps.style.display = 'none';
+        }
+        updateCaptureButtons();
+    });
+
+    // 加载设备APP列表
+    async function loadDeviceApps() {
+        deviceAppSelect.innerHTML = '<option value="">加载中...</option>';
+        deviceAppSelect.disabled = true;
+
+        try {
+            const result = await invoke('get_device_apps');
+
+            deviceAppSelect.innerHTML = '<option value="">请选择应用...</option>';
+            if (result.success && result.apps) {
+                result.apps.forEach(app => {
+                    const option = document.createElement('option');
+                    option.value = app.package;
+                    option.textContent = `${app.name} (${app.package})`;
+                    deviceAppSelect.appendChild(option);
+                });
+            }
+            deviceAppSelect.disabled = false;
+        } catch (error) {
+            deviceAppSelect.innerHTML = '<option value="">加载失败</option>';
+            toast.show({ text: `获取APP列表失败: ${error}`, color: 'error', duration: 3000 });
+        }
+    }
+
+    // 刷新APP列表
+    refreshAppsBtn.addEventListener('click', loadDeviceApps);
+
+    // APP选择变化
+    deviceAppSelect.addEventListener('change', updateCaptureButtons);
+
+    // 开始抓包
+    startCaptureBtn.addEventListener('click', async () => {
+        if (startCaptureBtn.disabled) return;
+
+        let packageName = '';
+        let apkDir = '';
+
+        if (captureTargetSelect.value === 'current') {
+            if (selectedApkIndex < 0 || !apkListData[selectedApkIndex]) {
+                toast.show({ text: '请先选择一个APK', color: 'warning', duration: 3000 });
+                return;
+            }
+
+            const apk = apkListData[selectedApkIndex];
+            packageName = apk.packageName;
+            apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
+
+            if (!packageName) {
+                toast.show({ text: '无法获取APK包名', color: 'error', duration: 3000 });
+                return;
+            }
+        } else {
+            packageName = deviceAppSelect.value;
+            if (!packageName) {
+                toast.show({ text: '请选择要抓包的应用', color: 'warning', duration: 3000 });
+                return;
+            }
+            apkDir = '';
+        }
+
+        startCaptureBtn.disabled = true;
+        startCaptureBtn.textContent = '启动中...';
+
+        try {
+            const result = await invoke('start_packet_capture', {
+                caseNumber,
+                apkDir,
+                packageName,
+                spawnMode: captureSpawnMode.checked
+            });
+
+            if (result.success) {
+                captureState.capturing = true;
+                captureState.currentCaptureId = result.capture_id;
+                captureState.currentSessionId = result.session_dir;
+                startCaptureBtn.textContent = '抓包中...';
+                stopCaptureBtn.disabled = false;
+                toast.show({ text: '抓包已启动', color: 'success', duration: 3000 });
+
+                // 刷新会话列表
+                await loadCaptureSessions();
+
+                // 自动选中当前会话并开始定时刷新
+                if (result.session_dir) {
+                    captureState.selectedSessionId = result.session_dir;
+                    startAutoRefreshPackets();
+                }
+            }
+        } catch (error) {
+            startCaptureBtn.disabled = false;
+            startCaptureBtn.textContent = '开始抓包';
+            toast.show({ text: `启动抓包失败: ${error}`, color: 'error', duration: 5000 });
+        }
+    });
+
+    // 停止抓包
+    stopCaptureBtn.addEventListener('click', async () => {
+        if (!captureState.currentCaptureId) return;
+
+        stopCaptureBtn.disabled = true;
+        stopCaptureBtn.textContent = '停止中...';
+
+        // 停止自动刷新
+        stopAutoRefreshPackets();
+
+        try {
+            await invoke('stop_packet_capture', {
+                captureId: captureState.currentCaptureId
+            });
+
+            captureState.capturing = false;
+            captureState.currentCaptureId = null;
+            startCaptureBtn.disabled = false;
+            startCaptureBtn.textContent = '开始抓包';
+            stopCaptureBtn.textContent = '停止抓包';
+            updateCaptureButtons();
+            toast.show({ text: '抓包已停止', color: 'success', duration: 3000 });
+
+            // 刷新会话列表
+            await loadCaptureSessions();
+        } catch (error) {
+            stopCaptureBtn.disabled = false;
+            stopCaptureBtn.textContent = '停止抓包';
+            toast.show({ text: `停止抓包失败: ${error}`, color: 'error', duration: 3000 });
+        }
+    });
+
+    // 加载抓包会话列表
+    async function loadCaptureSessions() {
+        // 需要选中APK才能加载该APK的抓包记录
+        if (selectedApkIndex < 0 || !apkListData[selectedApkIndex]) {
+            captureSessionsList.innerHTML = '<div class="capture-placeholder">上传一个apk开始分析</div>';
+            return;
+        }
+
+        const apk = apkListData[selectedApkIndex];
+        const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
+
+        try {
+            const result = await invoke('get_capture_sessions', { apkDir });
+
+            if (result.success) {
+                renderCaptureSessions(result.sessions);
+            }
+        } catch (error) {
+            console.error('加载抓包会话失败:', error);
+        }
+    }
+
+    // 渲染抓包会话列表
+    function renderCaptureSessions(sessions) {
+        if (!sessions || sessions.length === 0) {
+            captureSessionsList.innerHTML = '<div class="capture-placeholder">暂无抓包记录</div>';
+            return;
+        }
+
+        captureSessionsList.innerHTML = sessions.map(session => {
+            const isCapturing = captureState.currentCaptureId &&
+                captureState.currentCaptureId.includes(session.session_id);
+            const isSelected = captureState.selectedSessionId === session.session_id;
+
+            return `
+                <div class="capture-session-item ${isCapturing ? 'capturing' : ''} ${isSelected ? 'selected' : ''}"
+                     data-session-id="${session.session_id}">
+                    <div class="session-item-header">
+                        <span class="session-item-package" title="${session.package}">${session.package}</span>
+                        <span class="session-item-status ${isCapturing ? 'capturing' : 'completed'}">
+                            ${isCapturing ? '抓包中' : '已完成'}
+                        </span>
+                    </div>
+                    <div class="session-item-time">${session.start_time}</div>
+                    <div class="session-item-actions">
+                        <button class="session-action-btn view-btn" data-session="${session.session_id}">查看</button>
+                        <button class="session-action-btn delete" data-session="${session.session_id}">删除</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // 绑定事件
+        captureSessionsList.querySelectorAll('.capture-session-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('session-action-btn')) {
+                    selectCaptureSession(item.dataset.sessionId);
+                }
+            });
+        });
+
+        captureSessionsList.querySelectorAll('.view-btn').forEach(btn => {
+            btn.addEventListener('click', () => selectCaptureSession(btn.dataset.session));
+        });
+
+        captureSessionsList.querySelectorAll('.delete').forEach(btn => {
+            btn.addEventListener('click', () => deleteCaptureSession(btn.dataset.session));
+        });
+    }
+
+    // 选择抓包会话
+    async function selectCaptureSession(sessionId) {
+        captureState.selectedSessionId = sessionId;
+
+        // 更新选中状态
+        captureSessionsList.querySelectorAll('.capture-session-item').forEach(item => {
+            item.classList.toggle('selected', item.dataset.sessionId === sessionId);
+        });
+
+        // 加载数据包
+        await loadCapturePackets(sessionId);
+    }
+
+    // 加载抓包数据包
+    async function loadCapturePackets(sessionId) {
+        if (selectedApkIndex < 0 || !apkListData[selectedApkIndex]) {
+            return;
+        }
+
+        const apk = apkListData[selectedApkIndex];
+        const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
+
+        try {
+            const result = await invoke('get_capture_packets', {
+                apkDir,
+                sessionId,
+                page: 1,
+                pageSize: 200
+            });
+
+            if (result.success) {
+                captureState.packets = result.packets;
+                renderCapturePackets(result.packets);
+                packetsTitle.textContent = `数据包列表 (${result.total})`;
+            }
+        } catch (error) {
+            console.error('加载数据包失败:', error);
+            toast.show({ text: `加载数据包失败: ${error}`, color: 'error', duration: 3000 });
+        }
+    }
+
+    // 渲染数据包列表
+    function renderCapturePackets(packets) {
+        if (!packets || packets.length === 0) {
+            capturePacketsPlaceholder.classList.remove('hidden');
+            capturePacketsPlaceholder.querySelector('span').textContent = '暂无数据包';
+            capturePacketsTableWrapper.classList.remove('visible');
+            capturePacketDetail.classList.remove('visible');
+            return;
+        }
+
+        capturePacketsPlaceholder.classList.add('hidden');
+        capturePacketsTableWrapper.classList.add('visible');
+
+        capturePacketsBody.innerHTML = packets.map((packet, index) => {
+            const method = packet.method || 'GET';
+            const methodClass = method.toLowerCase();
+            const statusCode = packet.status || '-';
+            const statusClass = getStatusClass(statusCode);
+
+            return `
+                <tr data-index="${index}">
+                    <td class="col-no">${index + 1}</td>
+                    <td class="col-time">${packet.time || ''}</td>
+                    <td class="col-method"><span class="method-tag ${methodClass}">${method}</span></td>
+                    <td class="col-host">${packet.host || ''}</td>
+                    <td class="col-path" title="${packet.path || ''}">${packet.path || ''}</td>
+                    <td class="col-status"><span class="status-code ${statusClass}">${statusCode}</span></td>
+                    <td class="col-size">${formatSize(packet.size)}</td>
+                </tr>
+            `;
+        }).join('');
+
+        // 绑定行点击事件
+        capturePacketsBody.querySelectorAll('tr').forEach(row => {
+            row.addEventListener('click', () => {
+                selectPacket(parseInt(row.dataset.index, 10));
+            });
+        });
+    }
+
+    // 获取状态码样式类
+    function getStatusClass(code) {
+        if (code >= 200 && code < 300) return 'success';
+        if (code >= 300 && code < 400) return 'redirect';
+        if (code >= 400 && code < 500) return 'client-error';
+        if (code >= 500) return 'server-error';
+        return '';
+    }
+
+    // 格式化大小
+    function formatSize(bytes) {
+        if (!bytes || bytes === 0) return '-';
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+
+    // 选择数据包
+    function selectPacket(index) {
+        captureState.selectedPacketIndex = index;
+
+        // 更新表格选中状态
+        capturePacketsBody.querySelectorAll('tr').forEach((row, i) => {
+            row.classList.toggle('selected', i === index);
+        });
+
+        // 显示详情
+        const packet = captureState.packets[index];
+        if (packet) {
+            capturePacketDetail.classList.add('visible');
+            renderPacketDetail(packet, 'request');
+        }
+    }
+
+    // 渲染数据包详情
+    function renderPacketDetail(packet, tab) {
+        let content = '';
+
+        if (tab === 'request') {
+            content = formatHttpRequest(packet);
+        } else if (tab === 'response') {
+            content = formatHttpResponse(packet);
+        } else if (tab === 'hex') {
+            content = formatHexView(packet);
+        }
+
+        packetDetailContent.innerHTML = content;
+    }
+
+    // 格式化HTTP请求
+    function formatHttpRequest(packet) {
+        let html = '';
+
+        // 请求行
+        html += `<div class="http-first-line">${packet.method || 'GET'} ${packet.path || '/'} HTTP/1.1</div>`;
+
+        // 请求头
+        if (packet.requestHeaders) {
+            Object.entries(packet.requestHeaders).forEach(([name, value]) => {
+                html += `<span class="http-header-name">${name}:</span> <span class="http-header-value">${value}</span>\n`;
+            });
+        }
+
+        // 请求体
+        if (packet.requestBody) {
+            html += `\n<div class="http-body-label">Body:</div>`;
+            html += escapeHtml(formatJsonIfPossible(packet.requestBody));
+        }
+
+        return html;
+    }
+
+    // 格式化HTTP响应
+    function formatHttpResponse(packet) {
+        let html = '';
+
+        // 状态行
+        html += `<div class="http-first-line">HTTP/1.1 ${packet.status || 200} ${packet.statusText || 'OK'}</div>`;
+
+        // 响应头
+        if (packet.responseHeaders) {
+            Object.entries(packet.responseHeaders).forEach(([name, value]) => {
+                html += `<span class="http-header-name">${name}:</span> <span class="http-header-value">${value}</span>\n`;
+            });
+        }
+
+        // 响应体
+        if (packet.responseBody) {
+            html += `\n<div class="http-body-label">Body:</div>`;
+            html += escapeHtml(formatJsonIfPossible(packet.responseBody));
+        }
+
+        return html;
+    }
+
+    // 格式化十六进制视图
+    function formatHexView(packet) {
+        const data = packet.requestBody || packet.responseBody || '';
+        if (!data) return '<div class="packet-detail-placeholder">无数据</div>';
+
+        let lines = [];
+
+        for (let i = 0; i < data.length; i += 16) {
+            const offset = i.toString(16).toUpperCase().padStart(8, '0');
+            let hex = '';
+            let ascii = '';
+
+            for (let j = 0; j < 16; j++) {
+                if (i + j < data.length) {
+                    const byte = data.charCodeAt(i + j);
+                    hex += byte.toString(16).toUpperCase().padStart(2, '0') + ' ';
+                    ascii += (byte >= 32 && byte < 127) ? data[i + j] : '.';
+                } else {
+                    hex += '   ';
+                }
+            }
+
+            lines.push(`<div class="hex-line"><span class="hex-offset">${offset}</span>  <span class="hex-bytes">${hex}</span> <span class="hex-ascii">${ascii}</span></div>`);
+        }
+
+        return `<div class="packet-hex-view">${lines.join('')}</div>`;
+    }
+
+    // 尝试格式化JSON
+    function formatJsonIfPossible(str) {
+        try {
+            const obj = JSON.parse(str);
+            return JSON.stringify(obj, null, 2);
+        } catch {
+            return str;
+        }
+    }
+
+    // HTML转义
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // 数据包详情标签切换
+    document.querySelectorAll('.packet-detail-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.packet-detail-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            if (captureState.selectedPacketIndex >= 0) {
+                const packet = captureState.packets[captureState.selectedPacketIndex];
+                renderPacketDetail(packet, tab.dataset.tab);
+            }
+        });
+    });
+
+    // 删除抓包会话
+    async function deleteCaptureSession(sessionId) {
+        if (selectedApkIndex < 0 || !apkListData[selectedApkIndex]) {
+            toast.show({ text: '请先选择一个APK', color: 'warning', duration: 2000 });
+            return;
+        }
+
+        const apk = apkListData[selectedApkIndex];
+        const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
+
+        // 创建确认对话框
+        const modal = document.createElement('div');
+        modal.className = 'confirm-modal';
+        modal.innerHTML = `
+            <div class="confirm-modal-content">
+                <div class="confirm-modal-title">确认删除</div>
+                <div class="confirm-modal-text">确定要删除这个抓包记录吗？此操作无法撤销。</div>
+                <div class="confirm-modal-buttons">
+                    <button class="confirm-modal-btn cancel">取消</button>
+                    <button class="confirm-modal-btn delete">删除</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // 取消按钮
+        modal.querySelector('.cancel').addEventListener('click', () => {
+            modal.remove();
+        });
+
+        // 删除按钮
+        modal.querySelector('.delete').addEventListener('click', async () => {
+            modal.remove();
+
+            try {
+                await invoke('delete_capture_session', { apkDir, sessionId });
+                toast.show({ text: '已删除抓包记录', color: 'success', duration: 2000 });
+
+                if (captureState.selectedSessionId === sessionId) {
+                    captureState.selectedSessionId = null;
+                    captureState.packets = [];
+                    capturePacketsPlaceholder.classList.remove('hidden');
+                    capturePacketsTableWrapper.classList.remove('visible');
+                    capturePacketDetail.classList.remove('visible');
+                }
+
+                await loadCaptureSessions();
+            } catch (error) {
+                toast.show({ text: `删除失败: ${error}`, color: 'error', duration: 3000 });
+            }
+        });
+
+        // 点击蒙层关闭
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    }
+
+    // 刷新会话列表按钮
+    refreshSessionsBtn.addEventListener('click', loadCaptureSessions);
+
+    // 过滤数据包
+    packetsFilterInput.addEventListener('input', () => {
+        const filter = packetsFilterInput.value.toLowerCase();
+        capturePacketsBody.querySelectorAll('tr').forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(filter) ? '' : 'none';
+        });
+    });
+
+    // 拖拽调整抓包面板大小
+    let isResizingCapture = false;
+    captureResizer.addEventListener('mousedown', () => {
+        isResizingCapture = true;
+        captureResizer.classList.add('active');
+        document.addEventListener('mousemove', handleCaptureResize);
+        document.addEventListener('mouseup', stopCaptureResize);
+    });
+
+    function handleCaptureResize(e) {
+        if (!isResizingCapture) return;
+        const container = document.querySelector('.capture-container');
+        if (!container) return;
+        const containerRect = container.getBoundingClientRect();
+        const newWidth = e.clientX - containerRect.left;
+        if (newWidth >= 280 && newWidth <= 450) {
+            captureLeft.style.width = newWidth + 'px';
+        }
+    }
+
+    function stopCaptureResize() {
+        isResizingCapture = false;
+        captureResizer.classList.remove('active');
+        document.removeEventListener('mousemove', handleCaptureResize);
+        document.removeEventListener('mouseup', stopCaptureResize);
+    }
+
+    // 切换到抓包面板时初始化
+    operationTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            if (tab.dataset.tab === 'capture') {
+                checkFridaEnv();
+                loadCaptureSessions();
+            }
+            if (tab.dataset.tab === 'frida') {
+                loadFridaScripts();
+            }
+        });
+    });
+
+    // ===================== Frida脚本模块 =====================
+
+    // DOM元素
+    const fridaScriptsList = document.getElementById('frida-scripts-list');
+    const fridaSelectAllBtn = document.getElementById('frida-select-all-btn');
+    const fridaSelectedScripts = document.getElementById('frida-selected-scripts');
+    const fridaRunBtn = document.getElementById('frida-run-btn');
+    const fridaStopBtn = document.getElementById('frida-stop-btn');
+    const fridaTargetSelect = document.getElementById('frida-target-select');
+    const fridaDeviceApps = document.getElementById('frida-device-apps');
+    const fridaAppSelect = document.getElementById('frida-app-select');
+    const fridaRefreshAppsBtn = document.getElementById('frida-refresh-apps-btn');
+    const fridaSpawnMode = document.getElementById('frida-spawn-mode');
+    const fridaShowTime = document.getElementById('frida-show-time');
+    const fridaSearchInput = document.getElementById('frida-search-input');
+    const fridaClearBtn = document.getElementById('frida-clear-btn');
+    const fridaExportBtn = document.getElementById('frida-export-btn');
+    const fridaOutput = document.getElementById('frida-output');
+    const fridaResizer = document.getElementById('frida-resizer');
+    const fridaLeft = document.querySelector('.frida-left');
+
+    // 添加脚本相关DOM元素
+    const fridaAddScriptBtn = document.getElementById('frida-add-script-btn');
+    const fridaSaveDialog = document.getElementById('frida-save-dialog');
+    const fridaSaveDialogClose = document.getElementById('frida-save-dialog-close');
+    const fridaScriptPathDisplay = document.getElementById('frida-script-path-display');
+    const fridaUseTempBtn = document.getElementById('frida-use-temp-btn');
+    const fridaSavePermanentBtn = document.getElementById('frida-save-permanent-btn');
+    const fridaInfoDialog = document.getElementById('frida-info-dialog');
+    const fridaInfoDialogClose = document.getElementById('frida-info-dialog-close');
+    const fridaScriptNameInput = document.getElementById('frida-script-name');
+    const fridaScriptIdInput = document.getElementById('frida-script-id');
+    const fridaScriptDescInput = document.getElementById('frida-script-desc');
+    const fridaScriptCategorySelect = document.getElementById('frida-script-category');
+    const fridaInfoCancelBtn = document.getElementById('frida-info-cancel-btn');
+    const fridaInfoSaveBtn = document.getElementById('frida-info-save-btn');
+
+    // Frida Server状态相关DOM元素
+    const fridaServerIndicator = document.getElementById('frida-server-indicator');
+    const fridaServerValue = document.getElementById('frida-server-value');
+    const fridaModuleStartServer = document.getElementById('frida-module-start-server');
+    const fridaModuleStopServer = document.getElementById('frida-module-stop-server');
+
+    // Frida状态
+    let fridaState = {
+        scripts: [],           // 所有脚本配置
+        selectedScripts: [],   // 选中的脚本ID
+        running: false,        // 是否正在运行
+        processId: null,       // 当前运行的进程ID
+        outputLines: [],       // 输出行缓存
+        envReady: false,       // Frida环境是否就绪
+        customScripts: [],     // 自定义临时脚本路径
+        pendingScriptPath: null, // 待处理的脚本路径
+        serverRunning: false   // Frida Server是否运行
+    };
+
+    // 检查Frida脚本模块的环境状态
+    async function checkFridaScriptEnv() {
+        try {
+            const result = await invoke('check_frida_env');
+            fridaState.envReady = result.ready;
+            return result;
+        } catch (error) {
+            console.error('检查Frida环境失败:', error);
+            fridaState.envReady = false;
+            return { ready: false };
+        }
+    }
+
+    // 检查Frida Server状态（脚本模块专用）
+    async function checkFridaModuleServerStatus() {
+        try {
+            const result = await invoke('check_frida_server_status');
+            updateFridaServerUI(result.running);
+            return result.running;
+        } catch (error) {
+            console.error('检查Frida Server状态失败:', error);
+            updateFridaServerUI(false);
+            return false;
+        }
+    }
+
+    // 更新Frida Server UI状态
+    function updateFridaServerUI(running) {
+        fridaState.serverRunning = running;
+        if (running) {
+            fridaServerIndicator.textContent = '🟢';
+            fridaServerValue.textContent = '运行中';
+            fridaServerValue.className = 'frida-server-value running';
+            fridaModuleStartServer.style.display = 'none';
+            fridaModuleStopServer.style.display = 'inline-block';
+        } else {
+            fridaServerIndicator.textContent = '🔴';
+            fridaServerValue.textContent = '未启动';
+            fridaServerValue.className = 'frida-server-value stopped';
+            fridaModuleStartServer.style.display = 'inline-block';
+            fridaModuleStopServer.style.display = 'none';
+        }
+    }
+
+    // 启动Frida Server（脚本模块）
+    fridaModuleStartServer.addEventListener('click', async () => {
+        fridaModuleStartServer.disabled = true;
+        fridaServerIndicator.textContent = '🟡';
+        fridaServerValue.textContent = '启动中...';
+        fridaServerValue.className = 'frida-server-value loading';
+
+        try {
+            const result = await invoke('start_frida_server');
+            if (result.success) {
+                toast.show({ text: 'Frida Server已启动', color: 'success', duration: 2000 });
+                updateFridaServerUI(true);
+            } else {
+                toast.show({ text: `启动失败: ${result.message}`, color: 'error', duration: 3000 });
+                updateFridaServerUI(false);
+            }
+        } catch (error) {
+            toast.show({ text: `启动失败: ${error}`, color: 'error', duration: 3000 });
+            updateFridaServerUI(false);
+        } finally {
+            fridaModuleStartServer.disabled = false;
+        }
+    });
+
+    // 停止Frida Server（脚本模块）
+    fridaModuleStopServer.addEventListener('click', async () => {
+        fridaModuleStopServer.disabled = true;
+        fridaServerIndicator.textContent = '🟡';
+        fridaServerValue.textContent = '停止中...';
+        fridaServerValue.className = 'frida-server-value loading';
+
+        try {
+            const result = await invoke('stop_frida_server');
+            if (result.success) {
+                toast.show({ text: 'Frida Server已停止', color: 'success', duration: 2000 });
+                updateFridaServerUI(false);
+            } else {
+                toast.show({ text: `停止失败: ${result.message}`, color: 'error', duration: 3000 });
+                // 重新检查状态
+                await checkFridaModuleServerStatus();
+            }
+        } catch (error) {
+            toast.show({ text: `停止失败: ${error}`, color: 'error', duration: 3000 });
+            await checkFridaModuleServerStatus();
+        } finally {
+            fridaModuleStopServer.disabled = false;
+        }
+    });
+
+    // 加载Frida脚本列表
+    async function loadFridaScripts() {
+        fridaScriptsList.innerHTML = '<div class="frida-placeholder">检测环境中...</div>';
+
+        // 先检查Frida环境
+        const envResult = await checkFridaScriptEnv();
+
+        if (!envResult.ready) {
+            // 环境未就绪，显示初始化按钮
+            fridaScriptsList.innerHTML = `
+                <div class="frida-env-not-ready">
+                    <div class="frida-env-icon">⚠️</div>
+                    <div class="frida-env-title">Frida环境未初始化</div>
+                    <div class="frida-env-desc">需要安装 frida、frida-tools 等依赖库</div>
+                    <button class="frida-init-env-btn" id="frida-init-env-btn">初始化Frida环境</button>
+                </div>
+            `;
+
+            // 绑定初始化按钮事件
+            const initBtn = document.getElementById('frida-init-env-btn');
+            if (initBtn) {
+                initBtn.addEventListener('click', async () => {
+                    initBtn.disabled = true;
+                    initBtn.textContent = '初始化中...';
+
+                    try {
+                        toast.show({ text: '正在初始化Frida环境，这可能需要几分钟...', color: 'info', duration: 10000 });
+
+                        const result = await invoke('init_frida_env');
+
+                        if (result.success) {
+                            toast.show({ text: 'Frida环境初始化成功！', color: 'success', duration: 3000 });
+                            // 重新加载脚本列表
+                            fridaState.scripts = [];
+                            await loadFridaScripts();
+                        }
+                    } catch (error) {
+                        toast.show({ text: `初始化失败: ${error}`, color: 'error', duration: 5000 });
+                        initBtn.disabled = false;
+                        initBtn.textContent = '初始化Frida环境';
+                    }
+                });
+            }
+            return;
+        }
+
+        // 环境就绪，检查Frida Server状态
+        checkFridaModuleServerStatus();
+
+        // 环境就绪，加载脚本列表
+        if (fridaState.scripts.length > 0) {
+            // 已加载过，直接渲染
+            renderFridaScripts();
+            return;
+        }
+
+        fridaScriptsList.innerHTML = '<div class="frida-placeholder">加载脚本中...</div>';
+
+        try {
+            const result = await invoke('get_frida_scripts');
+
+            if (!result.success) {
+                fridaScriptsList.innerHTML = `<div class="frida-placeholder">${result.message}</div>`;
+                return;
+            }
+
+            fridaState.scripts = result.scripts;
+            renderFridaScripts();
+        } catch (error) {
+            console.error('加载Frida脚本失败:', error);
+            fridaScriptsList.innerHTML = `<div class="frida-placeholder">加载失败: ${error}</div>`;
+        }
+    }
+
+    // 渲染脚本列表
+    function renderFridaScripts() {
+        if (fridaState.scripts.length === 0) {
+            fridaScriptsList.innerHTML = '<div class="frida-placeholder">暂无可用脚本</div>';
+            return;
+        }
+
+        fridaScriptsList.innerHTML = fridaState.scripts.map(script => {
+            const isSelected = fridaState.selectedScripts.includes(script.id);
+            return `
+                <div class="frida-script-item ${isSelected ? 'selected' : ''}" data-id="${script.id}">
+                    <input type="checkbox" class="frida-script-checkbox" ${isSelected ? 'checked' : ''}>
+                    <div class="frida-script-info">
+                        <div class="frida-script-name">${escapeHtml(script.name)}</div>
+                        <div class="frida-script-desc">${escapeHtml(script.description)}</div>
+                        <span class="frida-script-category">${escapeHtml(script.categoryName || script.category)}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // 绑定点击事件
+        fridaScriptsList.querySelectorAll('.frida-script-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const scriptId = item.dataset.id;
+                const checkbox = item.querySelector('.frida-script-checkbox');
+
+                // 如果点击的不是checkbox本身，切换选中状态
+                if (e.target !== checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                }
+
+                toggleScriptSelection(scriptId, checkbox.checked);
+            });
+        });
+
+        updateSelectedScriptsDisplay();
+        updateFridaButtons();
+    }
+
+    // 切换脚本选中状态
+    function toggleScriptSelection(scriptId, selected) {
+        if (selected) {
+            if (!fridaState.selectedScripts.includes(scriptId)) {
+                fridaState.selectedScripts.push(scriptId);
+            }
+        } else {
+            fridaState.selectedScripts = fridaState.selectedScripts.filter(id => id !== scriptId);
+        }
+
+        // 更新UI
+        const item = fridaScriptsList.querySelector(`[data-id="${scriptId}"]`);
+        if (item) {
+            item.classList.toggle('selected', selected);
+        }
+
+        updateSelectedScriptsDisplay();
+        updateFridaButtons();
+    }
+
+    // 更新选中脚本显示
+    function updateSelectedScriptsDisplay() {
+        const hasScripts = fridaState.selectedScripts.length > 0;
+        const hasCustomScripts = fridaState.customScripts.length > 0;
+
+        if (!hasScripts && !hasCustomScripts) {
+            fridaSelectedScripts.innerHTML = '<span class="frida-selected-placeholder">请选择要执行的脚本</span>';
+            return;
+        }
+
+        let tagsHtml = '';
+
+        // 先显示自定义脚本
+        if (hasCustomScripts) {
+            tagsHtml += fridaState.customScripts.map((scriptPath, index) => {
+                const fileName = scriptPath.split(/[\\/]/).pop();
+                return `
+                    <span class="frida-selected-tag custom" data-custom-index="${index}" title="${escapeHtml(scriptPath)}">
+                        <span class="tag-label">[自定义]</span>${escapeHtml(fileName)}
+                        <span class="remove-tag" title="移除">×</span>
+                    </span>
+                `;
+            }).join('');
+        }
+
+        // 再显示普通脚本
+        if (hasScripts) {
+            tagsHtml += fridaState.selectedScripts.map(id => {
+                const script = fridaState.scripts.find(s => s.id === id);
+                if (!script) return '';
+                return `
+                    <span class="frida-selected-tag" data-id="${id}">
+                        ${escapeHtml(script.name)}
+                        <span class="remove-tag" title="移除">×</span>
+                    </span>
+                `;
+            }).join('');
+        }
+
+        fridaSelectedScripts.innerHTML = tagsHtml;
+
+        // 绑定普通脚本移除事件
+        fridaSelectedScripts.querySelectorAll('.frida-selected-tag:not(.custom) .remove-tag').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const tag = btn.closest('.frida-selected-tag');
+                const scriptId = tag.dataset.id;
+                toggleScriptSelection(scriptId, false);
+
+                // 更新左侧列表的checkbox
+                const checkbox = fridaScriptsList.querySelector(`[data-id="${scriptId}"] .frida-script-checkbox`);
+                if (checkbox) {
+                    checkbox.checked = false;
+                }
+            });
+        });
+
+        // 绑定自定义脚本移除事件
+        fridaSelectedScripts.querySelectorAll('.frida-selected-tag.custom .remove-tag').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const tag = btn.closest('.frida-selected-tag');
+                const index = parseInt(tag.dataset.customIndex);
+                fridaState.customScripts.splice(index, 1);
+                updateSelectedScriptsDisplay();
+                updateFridaButtons();
+            });
+        });
+    }
+
+    // 全选/取消全选
+    fridaSelectAllBtn.addEventListener('click', () => {
+        const allSelected = fridaState.selectedScripts.length === fridaState.scripts.length;
+
+        if (allSelected) {
+            // 取消全选
+            fridaState.selectedScripts = [];
+            fridaSelectAllBtn.textContent = '全选';
+        } else {
+            // 全选
+            fridaState.selectedScripts = fridaState.scripts.map(s => s.id);
+            fridaSelectAllBtn.textContent = '取消';
+        }
+
+        // 更新所有checkbox
+        fridaScriptsList.querySelectorAll('.frida-script-item').forEach(item => {
+            const checkbox = item.querySelector('.frida-script-checkbox');
+            checkbox.checked = !allSelected;
+            item.classList.toggle('selected', !allSelected);
+        });
+
+        updateSelectedScriptsDisplay();
+        updateFridaButtons();
+    });
+
+    // 更新按钮状态
+    function updateFridaButtons() {
+        const hasSelection = fridaState.selectedScripts.length > 0 || fridaState.customScripts.length > 0;
+        const hasTarget = fridaTargetSelect.value === 'current' ?
+            (selectedApkIndex >= 0 && apkListData[selectedApkIndex]?.packageName) :
+            !!fridaAppSelect.value;
+
+        fridaRunBtn.disabled = !hasSelection || !hasTarget || fridaState.running;
+        fridaStopBtn.disabled = !fridaState.running;
+
+        if (fridaState.running) {
+            fridaRunBtn.classList.add('running');
+            fridaRunBtn.textContent = '运行中...';
+        } else {
+            fridaRunBtn.classList.remove('running');
+            fridaRunBtn.textContent = '运行脚本';
+        }
+    }
+
+    // 目标选择切换
+    fridaTargetSelect.addEventListener('change', () => {
+        if (fridaTargetSelect.value === 'device') {
+            fridaDeviceApps.style.display = 'flex';
+            loadFridaDeviceApps();
+        } else {
+            fridaDeviceApps.style.display = 'none';
+        }
+        updateFridaButtons();
+    });
+
+    // 加载设备应用列表
+    async function loadFridaDeviceApps() {
+        fridaAppSelect.innerHTML = '<option value="">加载中...</option>';
+        fridaAppSelect.disabled = true;
+
+        try {
+            const result = await invoke('get_device_apps');
+
+            fridaAppSelect.innerHTML = '<option value="">请选择应用...</option>';
+            if (result.success && result.apps) {
+                result.apps.forEach(app => {
+                    const option = document.createElement('option');
+                    option.value = app.package;
+                    option.textContent = `${app.name} (${app.package})`;
+                    fridaAppSelect.appendChild(option);
+                });
+            }
+            fridaAppSelect.disabled = false;
+        } catch (error) {
+            fridaAppSelect.innerHTML = '<option value="">加载失败</option>';
+            console.error('获取APP列表失败:', error);
+        }
+    }
+
+    // 刷新应用列表
+    fridaRefreshAppsBtn.addEventListener('click', loadFridaDeviceApps);
+
+    // 应用选择变化
+    fridaAppSelect.addEventListener('change', updateFridaButtons);
+
+    // 运行脚本
+    fridaRunBtn.addEventListener('click', async () => {
+        if (fridaRunBtn.disabled || fridaState.running) return;
+
+        let packageName = '';
+        if (fridaTargetSelect.value === 'current') {
+            if (selectedApkIndex < 0 || !apkListData[selectedApkIndex]) {
+                toast.show({ text: '请先选择一个APK', color: 'warning', duration: 2000 });
+                return;
+            }
+            packageName = apkListData[selectedApkIndex].packageName;
+            if (!packageName) {
+                toast.show({ text: '无法获取APK包名', color: 'error', duration: 2000 });
+                return;
+            }
+        } else {
+            packageName = fridaAppSelect.value;
+            if (!packageName) {
+                toast.show({ text: '请选择要注入的应用', color: 'warning', duration: 2000 });
+                return;
+            }
+        }
+
+        // 获取选中的普通脚本文件名
+        const scriptFiles = fridaState.selectedScripts.map(id => {
+            const script = fridaState.scripts.find(s => s.id === id);
+            return script ? script.filename : null;
+        }).filter(Boolean);
+
+        // 获取自定义脚本路径
+        const customScriptPaths = [...fridaState.customScripts];
+
+        if (scriptFiles.length === 0 && customScriptPaths.length === 0) {
+            toast.show({ text: '请选择要执行的脚本', color: 'warning', duration: 2000 });
+            return;
+        }
+
+        fridaState.running = true;
+        updateFridaButtons();
+        clearFridaOutput();
+        appendFridaOutput('[*] 正在启动Frida...', 'info');
+        appendFridaOutput(`[*] 目标包名: ${packageName}`, 'info');
+        if (scriptFiles.length > 0) {
+            appendFridaOutput(`[*] 执行脚本: ${scriptFiles.join(', ')}`, 'info');
+        }
+        if (customScriptPaths.length > 0) {
+            appendFridaOutput(`[*] 自定义脚本: ${customScriptPaths.length}个`, 'info');
+        }
+        appendFridaOutput(`[*] Spawn模式: ${fridaSpawnMode.checked ? '是' : '否'}`, 'info');
+
+        try {
+            const result = await invoke('run_frida_scripts', {
+                packageName: packageName,
+                scripts: scriptFiles,
+                customScripts: customScriptPaths,
+                spawnMode: fridaSpawnMode.checked
+            });
+
+            if (result.success) {
+                fridaState.processId = result.processId;
+                appendFridaOutput('[+] Frida已启动', 'success');
+
+                // 开始轮询输出
+                startFridaOutputPolling();
+            } else {
+                appendFridaOutput(`[-] 启动失败: ${result.message}`, 'error');
+                fridaState.running = false;
+                updateFridaButtons();
+            }
+        } catch (error) {
+            appendFridaOutput(`[-] 启动失败: ${error}`, 'error');
+            fridaState.running = false;
+            updateFridaButtons();
+        }
+    });
+
+    // 停止脚本
+    fridaStopBtn.addEventListener('click', async () => {
+        if (!fridaState.running) return;
+
+        appendFridaOutput('[*] 正在停止Frida...', 'info');
+
+        try {
+            await invoke('stop_frida_scripts', { processId: fridaState.processId });
+            appendFridaOutput('[+] Frida已停止', 'success');
+        } catch (error) {
+            appendFridaOutput(`[-] 停止失败: ${error}`, 'error');
+        }
+
+        stopFridaOutputPolling();
+        fridaState.running = false;
+        fridaState.processId = null;
+        updateFridaButtons();
+    });
+
+    // 输出轮询
+    let fridaOutputTimer = null;
+
+    function startFridaOutputPolling() {
+        stopFridaOutputPolling();
+        fridaOutputTimer = setInterval(async () => {
+            if (!fridaState.running || !fridaState.processId) {
+                stopFridaOutputPolling();
+                return;
+            }
+
+            try {
+                const result = await invoke('get_frida_output', { processId: fridaState.processId });
+
+                if (result.success && result.lines && result.lines.length > 0) {
+                    result.lines.forEach(line => {
+                        appendFridaOutput(line.content, line.type || 'info');
+                    });
+                }
+
+                // 检查进程是否还在运行
+                if (result.finished) {
+                    appendFridaOutput('[*] Frida进程已结束', 'info');
+                    stopFridaOutputPolling();
+                    fridaState.running = false;
+                    fridaState.processId = null;
+                    updateFridaButtons();
+                }
+            } catch (error) {
+                console.error('获取Frida输出失败:', error);
+            }
+        }, 500);
+    }
+
+    function stopFridaOutputPolling() {
+        if (fridaOutputTimer) {
+            clearInterval(fridaOutputTimer);
+            fridaOutputTimer = null;
+        }
+    }
+
+    // 添加输出行
+    function appendFridaOutput(text, type = 'info') {
+        // 移除占位符
+        const placeholder = fridaOutput.querySelector('.frida-output-placeholder');
+        if (placeholder) {
+            placeholder.remove();
+        }
+
+        const line = document.createElement('div');
+        line.className = `frida-output-line ${type}`;
+
+        // 添加时间戳
+        if (fridaShowTime.checked) {
+            const now = new Date();
+            const timestamp = now.getFullYear() + '-' +
+                String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                String(now.getDate()).padStart(2, '0') + ' ' +
+                String(now.getHours()).padStart(2, '0') + ':' +
+                String(now.getMinutes()).padStart(2, '0') + ':' +
+                String(now.getSeconds()).padStart(2, '0') + '.' +
+                String(now.getMilliseconds()).padStart(3, '0');
+            line.innerHTML = `<span class="time">[${timestamp}]</span>${escapeHtml(text)}`;
+        } else {
+            line.textContent = text;
+        }
+
+        // 搜索高亮
+        const searchText = fridaSearchInput.value.trim();
+        if (searchText && text.toLowerCase().includes(searchText.toLowerCase())) {
+            line.innerHTML = line.innerHTML.replace(
+                new RegExp(`(${escapeRegExp(searchText)})`, 'gi'),
+                '<span class="highlight">$1</span>'
+            );
+        }
+
+        fridaOutput.appendChild(line);
+        fridaState.outputLines.push({ text, type, timestamp: Date.now() });
+
+        // 自动滚动到底部
+        fridaOutput.scrollTop = fridaOutput.scrollHeight;
+    }
+
+    // 清空输出
+    function clearFridaOutput() {
+        fridaOutput.innerHTML = '<div class="frida-output-placeholder">Frida脚本输出将在此显示...</div>';
+        fridaState.outputLines = [];
+    }
+
+    fridaClearBtn.addEventListener('click', clearFridaOutput);
+
+    // 导出输出
+    fridaExportBtn.addEventListener('click', async () => {
+        if (fridaState.outputLines.length === 0) {
+            toast.show({ text: '没有可导出的内容', color: 'warning', duration: 2000 });
+            return;
+        }
+
+        const content = fridaState.outputLines.map(line => {
+            const date = new Date(line.timestamp);
+            const timestamp = date.getFullYear() + '-' +
+                String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                String(date.getDate()).padStart(2, '0') + ' ' +
+                String(date.getHours()).padStart(2, '0') + ':' +
+                String(date.getMinutes()).padStart(2, '0') + ':' +
+                String(date.getSeconds()).padStart(2, '0') + '.' +
+                String(date.getMilliseconds()).padStart(3, '0');
+            return `[${timestamp}] ${line.text}`;
+        }).join('\n');
+
+        try {
+            const filename = `frida_output_${Date.now()}.txt`;
+            await invoke('save_frida_output', { filename, content });
+            toast.show({ text: '导出成功', color: 'success', duration: 2000 });
+        } catch (error) {
+            toast.show({ text: `导出失败: ${error}`, color: 'error', duration: 3000 });
+        }
+    });
+
+    // 搜索过滤
+    fridaSearchInput.addEventListener('input', () => {
+        const searchText = fridaSearchInput.value.trim().toLowerCase();
+
+        fridaOutput.querySelectorAll('.frida-output-line').forEach(line => {
+            const text = (line.dataset.originalText || line.textContent).toLowerCase();
+            if (!searchText || text.includes(searchText)) {
+                line.style.display = '';
+                // 高亮匹配文本或恢复原始文本
+                const originalText = line.dataset.originalText || line.textContent;
+                line.dataset.originalText = originalText;
+                if (searchText) {
+                    line.innerHTML = escapeHtml(originalText).replace(
+                        new RegExp(`(${escapeRegExp(searchText)})`, 'gi'),
+                        '<span class="highlight">$1</span>'
+                    );
+                } else {
+                    // 清空搜索时恢复原始文本
+                    line.innerHTML = escapeHtml(originalText);
+                }
+            } else {
+                line.style.display = 'none';
+            }
+        });
+    });
+
+    // Frida面板拖拽调整大小
+    let isResizingFrida = false;
+    fridaResizer.addEventListener('mousedown', () => {
+        isResizingFrida = true;
+        fridaResizer.classList.add('active');
+        document.addEventListener('mousemove', handleFridaResize);
+        document.addEventListener('mouseup', stopFridaResize);
+    });
+
+    function handleFridaResize(e) {
+        if (!isResizingFrida) return;
+        const container = document.querySelector('.frida-container');
+        if (!container) return;
+        const containerRect = container.getBoundingClientRect();
+        const newWidth = e.clientX - containerRect.left;
+        if (newWidth >= 200 && newWidth <= 400) {
+            fridaLeft.style.width = newWidth + 'px';
+        }
+    }
+
+    function stopFridaResize() {
+        isResizingFrida = false;
+        fridaResizer.classList.remove('active');
+        document.removeEventListener('mousemove', handleFridaResize);
+        document.removeEventListener('mouseup', stopFridaResize);
+    }
+
+    // ===================== 添加自定义脚本功能 =====================
+
+    // 添加脚本按钮点击事件
+    fridaAddScriptBtn.addEventListener('click', async () => {
+        try {
+            // 使用Tauri的文件选择对话框
+            const { open } = window.__TAURI__.dialog;
+            const selected = await open({
+                multiple: false,
+                filters: [{
+                    name: 'JavaScript',
+                    extensions: ['js']
+                }]
+            });
+
+            if (selected) {
+                // 保存待处理的脚本路径
+                fridaState.pendingScriptPath = selected;
+                // 显示路径
+                fridaScriptPathDisplay.textContent = selected;
+                // 显示保存确认对话框
+                fridaSaveDialog.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('选择文件失败:', error);
+            toast.show({ text: '选择文件失败: ' + error, color: 'error', duration: 3000 });
+        }
+    });
+
+    // 关闭保存确认对话框
+    fridaSaveDialogClose.addEventListener('click', () => {
+        fridaSaveDialog.classList.add('hidden');
+        fridaState.pendingScriptPath = null;
+    });
+
+    // 仅本次使用
+    fridaUseTempBtn.addEventListener('click', () => {
+        if (fridaState.pendingScriptPath) {
+            // 添加到自定义脚本列表
+            fridaState.customScripts.push(fridaState.pendingScriptPath);
+            updateSelectedScriptsDisplay();
+            updateFridaButtons();
+            toast.show({ text: '已添加自定义脚本（仅本次使用）', color: 'success', duration: 2000 });
+        }
+        fridaSaveDialog.classList.add('hidden');
+        fridaState.pendingScriptPath = null;
+    });
+
+    // 保存到列表 - 显示信息填写对话框
+    fridaSavePermanentBtn.addEventListener('click', () => {
+        fridaSaveDialog.classList.add('hidden');
+        // 清空表单
+        fridaScriptNameInput.value = '';
+        fridaScriptIdInput.value = '';
+        fridaScriptDescInput.value = '';
+        fridaScriptCategorySelect.value = 'other';
+        // 显示信息填写对话框
+        fridaInfoDialog.classList.remove('hidden');
+    });
+
+    // 关闭信息填写对话框
+    fridaInfoDialogClose.addEventListener('click', () => {
+        fridaInfoDialog.classList.add('hidden');
+        fridaState.pendingScriptPath = null;
+    });
+
+    fridaInfoCancelBtn.addEventListener('click', () => {
+        fridaInfoDialog.classList.add('hidden');
+        fridaState.pendingScriptPath = null;
+    });
+
+    // 保存脚本到列表
+    fridaInfoSaveBtn.addEventListener('click', async () => {
+        const name = fridaScriptNameInput.value.trim();
+        const id = fridaScriptIdInput.value.trim();
+        const description = fridaScriptDescInput.value.trim();
+        const category = fridaScriptCategorySelect.value;
+
+        // 验证必填字段
+        if (!name) {
+            toast.show({ text: '请输入脚本名称', color: 'warning', duration: 2000 });
+            fridaScriptNameInput.focus();
+            return;
+        }
+        if (!id) {
+            toast.show({ text: '请输入脚本ID', color: 'warning', duration: 2000 });
+            fridaScriptIdInput.focus();
+            return;
+        }
+        // 验证ID格式（只允许英文、数字、下划线）
+        if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(id)) {
+            toast.show({ text: '脚本ID只能包含英文字母、数字和下划线，且必须以字母开头', color: 'warning', duration: 3000 });
+            fridaScriptIdInput.focus();
+            return;
+        }
+
+        // 检查ID是否已存在
+        if (fridaState.scripts.some(s => s.id === id)) {
+            toast.show({ text: '该脚本ID已存在，请使用其他ID', color: 'warning', duration: 2000 });
+            fridaScriptIdInput.focus();
+            return;
+        }
+
+        try {
+            fridaInfoSaveBtn.disabled = true;
+            fridaInfoSaveBtn.textContent = '保存中...';
+
+            // 调用后端保存脚本
+            const result = await invoke('save_frida_script', {
+                sourcePath: fridaState.pendingScriptPath,
+                scriptInfo: {
+                    id: id,
+                    name: name,
+                    description: description || '',
+                    category: category
+                }
+            });
+
+            if (result.success) {
+                toast.show({ text: '脚本已保存到列表', color: 'success', duration: 2000 });
+                // 关闭对话框
+                fridaInfoDialog.classList.add('hidden');
+                fridaState.pendingScriptPath = null;
+                // 重新加载脚本列表
+                fridaState.scripts = [];
+                await loadFridaScripts();
+            } else {
+                toast.show({ text: '保存失败: ' + result.message, color: 'error', duration: 3000 });
+            }
+        } catch (error) {
+            console.error('保存脚本失败:', error);
+            toast.show({ text: '保存失败: ' + error, color: 'error', duration: 3000 });
+        } finally {
+            fridaInfoSaveBtn.disabled = false;
+            fridaInfoSaveBtn.textContent = '保存脚本';
+        }
+    });
 });
