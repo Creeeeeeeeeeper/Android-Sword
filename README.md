@@ -3,8 +3,13 @@
 <p align="center">一款开源的apk一体化分析工具</p>
 
 <p align="center"><img src="./README/Androidrobot.png" width="200">
+### 演示视频：
 
-目前模块：
+画质不高，将就着看(\*^▽^\*)
+
+<video src="./README/output.mp4"></video>
+
+### 各模块总览
 
 **总览：**
 
