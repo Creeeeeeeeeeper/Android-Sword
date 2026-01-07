@@ -399,6 +399,19 @@ html body {
     user-select: none;
 }
 
+.about-link {
+    color: #82b1ff;
+    text-decoration: none;
+    cursor: pointer;
+    user-select: text;
+    transition: color 0.2s;
+}
+
+.about-link:hover {
+    color: #a8cfff;
+    text-decoration: underline;
+}
+
 /* 案件列表样式 */
 .cases-header {
     position: sticky;

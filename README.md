@@ -4,6 +4,23 @@
 
 <p align="center"><img src="./README/Androidrobot.png" width="200">
 
+<p align="center">
+  <a href="https://www.gnu.org/licenses/gpl-3.0">
+    <img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3">
+  </a>
+  <a href="https://github.com/Creeeeeeeeeeper/Android-Sword/stargazers">
+    <img src="https://img.shields.io/github/stars/Creeeeeeeeeeper/Android-Sword?style=social" alt="GitHub stars">
+  </a>
+  <a href="https://github.com/Creeeeeeeeeeper/Android-Sword/network/members">
+    <img src="https://img.shields.io/github/forks/Creeeeeeeeeeper/Android-Sword?style=social" alt="GitHub forks">
+  </a>
+</p>
+<p align="center">License: GNU General Public License v3.0</p>
+
+<p align="center">
+  <a href="./LICENSE">完整许可证文本</a>
+</p>
+
 ### 演示视频：
 
 画质不高，将就着看(\*^▽^\*)
