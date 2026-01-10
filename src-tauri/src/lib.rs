@@ -4,6 +4,7 @@ mod file_ops;
 mod window;
 mod adb;
 mod apk;
+mod apk_quick;
 mod jadx;
 mod sensitive;
 mod frida;
@@ -55,6 +56,12 @@ pub fn run() {
             apk::get_apk_details,
             apk::preanalyze_apk_details,
             apk::analyze_third_party_services,
+            // APK快速分析（不依赖jadx）
+            apk_quick::quick_analyze_apk,
+            apk_quick::analyze_detection_patterns,
+            apk_quick::get_apk_info_quick,
+            apk_quick::get_apk_permissions_quick,
+            apk_quick::get_apk_components_quick,
             // JADX反编译
             jadx::get_jadx_file_tree,
             jadx::get_jadx_subdirectory,
@@ -63,6 +70,7 @@ pub fn run() {
             jadx::decompile_apk,
             // 敏感信息扫描
             sensitive::scan_sensitive_info,
+            sensitive::scan_sensitive_info_streaming,
             sensitive::get_sensitive_info,
             sensitive::ping_ip,
             // Scrcpy屏幕投射

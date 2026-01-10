@@ -19,7 +19,6 @@
     // DOM元素引用
     let sensitiveCategory = null;
     let sensitivePageSize = null;
-    let sensitiveScanBtn = null;
     let sensitiveRescanBtn = null;
     let sensitiveStats = null;
     let sensitiveList = null;
@@ -30,15 +29,28 @@
     let sensitiveLeft = null;
 
     // 每个APK独立的敏感信息状态管理
-    // key: apk.timestamp, value: { scanning, hasScanned, currentPage, totalPages, selectedId, stats }
+    // key: apk.timestamp, value: { scanning, hasScanned, currentPage, totalPages, selectedId, stats, allItems, eventUnlisteners }
     const sensitiveStateMap = new Map();
+
+    // 批量渲染控制
+    let pendingItems = [];
+    let renderTimer = null;
+    const BATCH_SIZE = 10; // 累积10条再渲染
+    const BATCH_DELAY = 500; // 或500ms后渲染
 
     // 分类名称映射
     const categoryNames = {
-        'url': 'URL',
+        'hae': 'HAE敏感信息',
+        'private_key': '私钥和证书',
+        'api_key': 'API密钥和令牌',
+        'oauth': 'OAuth和认证令牌',
+        'cloud': '云平台凭证',
+        'service_account': '服务账号凭证',
+        'payment': '支付相关密钥',
+        'platform': '平台服务密钥',
         'ip': 'IP地址',
-        'access_key': 'AccessKey',
-        'number': '纯数字'
+        'url': 'URL地址',
+        'other': '其他敏感信息'
     };
 
     // 拖拽状态
@@ -46,21 +58,25 @@
 
     /**
      * 获取当前APK的敏感信息状态
-     * @param {string} timestamp - APK的时间戳标识
+     * @param {string|number} timestamp - APK的时间戳标识
      * @returns {Object} 敏感信息状态对象
      */
     function getSensitiveState(timestamp) {
-        if (!sensitiveStateMap.has(timestamp)) {
-            sensitiveStateMap.set(timestamp, {
+        // 统一转换为字符串作为key，确保类型一致
+        const key = String(timestamp);
+        if (!sensitiveStateMap.has(key)) {
+            sensitiveStateMap.set(key, {
                 scanning: false,
                 hasScanned: false,
                 currentPage: 0,
                 totalPages: 0,
                 selectedId: -1,
-                stats: null
+                stats: null,
+                allItems: [], // 所有扫描到的敏感信息
+                eventUnlisteners: [] // 事件监听器的取消订阅函数
             });
         }
-        return sensitiveStateMap.get(timestamp);
+        return sensitiveStateMap.get(key);
     }
 
     /**
@@ -90,7 +106,6 @@
         // 初始化DOM元素引用
         sensitiveCategory = document.getElementById('sensitive-category');
         sensitivePageSize = document.getElementById('sensitive-page-size');
-        sensitiveScanBtn = document.getElementById('sensitive-scan-btn');
         sensitiveRescanBtn = document.getElementById('sensitive-rescan-btn');
         sensitiveStats = document.getElementById('sensitive-stats');
         sensitiveList = document.getElementById('sensitive-list');
@@ -103,6 +118,9 @@
         // 绑定事件
         bindEvents();
 
+        // 注意：由于页面在iframe中运行，Tauri事件系统无法正常工作
+        // 改用轮询缓存文件的方案，不再设置全局事件监听器
+
         console.log('SensitiveModule 初始化完成');
     }
 
@@ -110,13 +128,6 @@
      * 绑定事件监听器
      */
     function bindEvents() {
-        // 扫描按钮点击
-        if (sensitiveScanBtn) {
-            sensitiveScanBtn.addEventListener('click', async () => {
-                await performSensitiveScan(false);
-            });
-        }
-
         // 重新扫描按钮点击
         if (sensitiveRescanBtn) {
             sensitiveRescanBtn.addEventListener('click', () => {
@@ -238,58 +249,431 @@
 
         if (selectedApkIndex < 0) {
             sensitiveStats.innerHTML = '';
-            sensitiveList.innerHTML = '<div class="sensitive-placeholder">上传一个apk开始分析</div>';
+            sensitiveList.innerHTML = '<div class="sensitive-placeholder">请先添加APK，系统将自动扫描敏感信息</div>';
             sensitivePagination.innerHTML = '';
             sensitiveCodePath.textContent = '';
             sensitiveCodeContent.innerHTML = '<div class="sensitive-placeholder">选择左侧敏感信息查看代码位置</div>';
-            sensitiveScanBtn.disabled = false;
-            sensitiveScanBtn.textContent = '扫描';
             sensitiveRescanBtn.style.display = 'none';
             return;
         }
 
         const apk = apkListData[selectedApkIndex];
         const state = getSensitiveState(apk.timestamp);
+        const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
 
         // 切换APK时清空代码预览区
         sensitiveCodePath.textContent = '';
         sensitiveCodeContent.innerHTML = '<div class="sensitive-placeholder">选择左侧敏感信息查看代码位置</div>';
 
+        // APK扫描不再依赖反编译，直接可以扫描
+        // 检查APK文件是否存在
+        const apkPath = `${apkDir}/base.apk`;
+
         if (state.scanning) {
             // 正在扫描中
-            sensitiveScanBtn.disabled = true;
-            sensitiveScanBtn.textContent = '扫描中...';
             sensitiveRescanBtn.style.display = 'none';
-            sensitiveList.innerHTML = '<div class="sensitive-loading"><div class="spinner"></div><span>正在扫描敏感信息...</span></div>';
-            sensitiveStats.innerHTML = '';
+            sensitiveList.innerHTML = '<div class="sensitive-placeholder">扫描中，请稍候...</div>';
+            sensitiveStats.innerHTML = '扫描中...';
             sensitivePagination.innerHTML = '';
-        } else {
-            // 未在扫描
-            sensitiveScanBtn.disabled = false;
-            sensitiveScanBtn.textContent = '扫描';
 
+            // 如果还没有轮询，启动轮询
+            const cachePath = `${apkDir}/sensitive.json`;
+            startPollingForCache(String(apk.timestamp), cachePath);
+        } else {
             if (state.hasScanned) {
-                // 已有扫描结果，显示重新扫描按钮
+                // 已有扫描结果（来自内存或缓存），显示重新扫描按钮
+                console.log(`[UI刷新] APK ${apk.timestamp} 已有扫描结果，共 ${state.allItems.length} 条`);
                 sensitiveRescanBtn.style.display = 'inline-block';
                 sensitiveRescanBtn.disabled = false;
                 if (state.stats) {
                     renderSensitiveStats(state.stats);
                 }
+                // 使用分页渲染，而不是全量渲染
                 loadSensitivePage();
             } else {
-                // 尚未扫描，隐藏重新扫描按钮，检查是否有缓存
-                sensitiveRescanBtn.style.display = 'none';
-                sensitiveStats.innerHTML = '';
-                sensitiveList.innerHTML = '<div class="sensitive-placeholder">点击扫描按钮开始分析敏感信息</div>';
-                sensitivePagination.innerHTML = '';
-                // 尝试加载缓存
-                checkAndLoadSensitiveCache();
+                // 尚未扫描，检查内存中是否有数据（可能扫描完成但状态未更新）
+                if (state.allItems && state.allItems.length > 0) {
+                    // 内存中有数据，说明扫描已完成，只是状态未更新
+                    console.log(`[UI刷新] APK ${apk.timestamp} 内存中有数据，标记为已扫描，共 ${state.allItems.length} 条`);
+                    state.hasScanned = true;
+                    sensitiveRescanBtn.style.display = 'inline-block';
+                    sensitiveRescanBtn.disabled = false;
+                    if (state.stats) {
+                        renderSensitiveStats(state.stats);
+                    }
+                    // 使用分页渲染
+                    loadSensitivePage();
+                } else {
+                    // 内存中没有数据，检查缓存或等待后台扫描
+                    console.log(`[UI刷新] APK ${apk.timestamp} 尚未扫描，检查缓存`);
+                    sensitiveRescanBtn.style.display = 'none';
+                    sensitiveStats.innerHTML = '';
+                    sensitiveList.innerHTML = '<div class="sensitive-placeholder">等待自动扫描...</div>';
+                    sensitivePagination.innerHTML = '';
+                    // 异步检查缓存
+                    checkAndLoadSensitiveCache().catch(err => {
+                        console.error('检查缓存失败:', err);
+                    });
+                }
             }
         }
     }
 
     /**
-     * 执行敏感信息扫描
+     * 渲染所有敏感信息项（用于切换APK时显示已扫描的结果）
+     * @param {Array} items - 敏感信息数组
+     */
+    function renderAllItems(items) {
+        if (!items || items.length === 0) {
+            sensitiveList.innerHTML = '<div class="sensitive-placeholder">未发现敏感信息</div>';
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        items.forEach(item => {
+            const element = createSensitiveListItemElement(item);
+            fragment.appendChild(element);
+        });
+
+        sensitiveList.innerHTML = '';
+        sensitiveList.appendChild(fragment);
+    }
+
+    /**
+     * 设置全局事件监听器（页面加载时设置一次，监听所有APK的扫描事件）
+     */
+    async function setupGlobalSensitiveListeners() {
+        // 尝试从当前窗口或父窗口获取 Tauri API
+        const tauriEvent = window.__TAURI__?.event || window.parent?.__TAURI__?.event;
+
+        if (!tauriEvent || !tauriEvent.listen) {
+            console.error('[全局监听] 无法获取 Tauri event API');
+            return;
+        }
+
+        const { listen } = tauriEvent;
+
+        try {
+            // 监听单条结果（用于实时显示进度，可选）
+            await listen('sensitive-item', (event) => {
+                const { apkDir, item } = event.payload;
+                // 从apkDir提取timestamp（处理Windows和Unix路径）
+                const normalizedPath = apkDir.replace(/\\/g, '/');
+                const timestamp = normalizedPath.split('/').pop();
+
+                const state = getSensitiveState(timestamp);
+                // 标记为扫描中
+                state.scanning = true;
+
+                // 如果当前显示的是这个APK且在敏感信息页面，实时显示
+                const selectedApkIndex = getSelectedApkIndex();
+                const apkListData = getApkListData();
+                if (selectedApkIndex >= 0 && String(apkListData[selectedApkIndex].timestamp) === String(timestamp)) {
+                    const sensitiveTab = document.querySelector('[data-tab="sensitive"]');
+                    if (sensitiveTab && sensitiveTab.classList.contains('active')) {
+                        // 添加到待渲染队列
+                        pendingItems.push(item);
+                        if (pendingItems.length >= BATCH_SIZE) {
+                            flushPendingItems(timestamp);
+                        } else if (!renderTimer) {
+                            renderTimer = setTimeout(() => {
+                                flushPendingItems(timestamp);
+                            }, BATCH_DELAY);
+                        }
+                    }
+                }
+            });
+
+            // 监听进度
+            await listen('sensitive-progress', (event) => {
+                const { apkDir, processed, total } = event.payload;
+                // 从apkDir提取timestamp（处理Windows和Unix路径）
+                const normalizedPath = apkDir.replace(/\\/g, '/');
+                const timestamp = normalizedPath.split('/').pop();
+                console.log(`[全局监听] 扫描进度: APK=${timestamp}, ${processed}/${total}`);
+
+                // 标记为扫描中
+                const state = getSensitiveState(timestamp);
+                state.scanning = true;
+
+                // 如果当前显示的是这个APK且在敏感信息页面，更新进度
+                const selectedApkIndex = getSelectedApkIndex();
+                const apkListData = getApkListData();
+                // 注意：timestamp可能是字符串，apk.timestamp可能是数字，需要转换比较
+                if (selectedApkIndex >= 0 && String(apkListData[selectedApkIndex].timestamp) === String(timestamp)) {
+                    const sensitiveTab = document.querySelector('[data-tab="sensitive"]');
+                    if (sensitiveTab && sensitiveTab.classList.contains('active')) {
+                        updateScanProgress(timestamp, processed, total);
+                    }
+                }
+            });
+
+            // 监听完成
+            await listen('sensitive-complete', (event) => {
+                console.log('后端敏感信息已扫描完毕', event.payload);
+
+                const { apkDir, total, stats, items } = event.payload;
+                // 从apkDir提取timestamp（处理Windows和Unix路径）
+                const normalizedPath = apkDir.replace(/\\/g, '/');
+                const timestamp = normalizedPath.split('/').pop();
+
+                console.log(`[全局监听] 敏感信息扫描完成: ${timestamp}, 共 ${total} 条, apkDir=${apkDir}`);
+
+                const state = getSensitiveState(timestamp);
+                state.scanning = false;
+                state.hasScanned = true;
+                state.stats = stats;
+                // 直接使用后端发送的完整数据
+                state.allItems = items || [];
+
+                console.log(`[全局监听] APK ${timestamp} 状态更新: hasScanned=${state.hasScanned}, allItems.length=${state.allItems.length}`);
+
+                // 如果当前显示的是这个APK，更新UI
+                const selectedApkIndex = getSelectedApkIndex();
+                const apkListData = getApkListData();
+                // 注意：timestamp可能是字符串，apk.timestamp可能是数字，需要转换比较
+                if (selectedApkIndex >= 0 && String(apkListData[selectedApkIndex].timestamp) === String(timestamp)) {
+                    const sensitiveTab = document.querySelector('[data-tab="sensitive"]');
+                    if (sensitiveTab && sensitiveTab.classList.contains('active')) {
+                        // 在敏感信息页面，使用分页渲染
+                        console.log(`[全局监听] 在敏感信息页面，使用分页渲染 ${state.allItems.length} 条结果`);
+
+                        // 清空待渲染队列
+                        pendingItems = [];
+                        if (renderTimer) {
+                            clearTimeout(renderTimer);
+                            renderTimer = null;
+                        }
+
+                        toast.show({
+                            text: `扫描完成，共发现 ${total} 条敏感信息`,
+                            color: 'success',
+                            duration: 3000
+                        });
+
+                        if (stats) {
+                            renderSensitiveStats(stats);
+                        }
+
+                        // 显示重新扫描按钮
+                        if (sensitiveRescanBtn) {
+                            sensitiveRescanBtn.style.display = 'inline-block';
+                        }
+
+                        // 使用分页加载第一页
+                        loadSensitivePage();
+                    } else {
+                        // 不在敏感信息页面，只记录状态
+                        console.log(`[全局监听] APK ${timestamp} 扫描完成，结果已缓存到内存，共 ${state.allItems.length} 条`);
+                    }
+                } else {
+                    console.log(`[全局监听] APK ${timestamp} 不是当前选中的APK，结果已缓存`);
+                }
+            });
+
+            console.log('[全局监听] 敏感信息事件监听器已设置');
+        } catch (error) {
+            console.error('[全局监听] 设置全局监听器失败:', error);
+        }
+    }
+
+    /**
+     * 设置流式扫描的事件监听器（废弃，保留兼容性）
+     * @deprecated 使用全局监听器代替
+     * @param {string} timestamp - APK时间戳
+     * @param {string} apkDir - APK目录
+     */
+    async function setupStreamingScanListeners(timestamp, apkDir) {
+        // 标记为扫描中
+        const state = getSensitiveState(timestamp);
+        if (!state.scanning) {
+            state.scanning = true;
+            console.log(`[监听器] 标记 APK ${timestamp} 为扫描中`);
+        }
+    }
+
+    /**
+     * 批量添加敏感信息项到渲染队列（不再添加到allItems，因为全局监听器已添加）
+     * @param {string} timestamp - APK时间戳
+     * @param {Object} item - 敏感信息项
+     */
+    function appendSensitiveItemBatched(timestamp, item) {
+        // 注意：item 已经在全局监听器中添加到 state.allItems 了，这里只处理渲染
+
+        // 检查当前是否显示该APK
+        const selectedApkIndex = getSelectedApkIndex();
+        const apkListData = getApkListData();
+        if (selectedApkIndex >= 0 && String(apkListData[selectedApkIndex].timestamp) === String(timestamp)) {
+            pendingItems.push(item);
+
+            // 累积10条或500ms后批量渲染
+            if (pendingItems.length >= BATCH_SIZE) {
+                flushPendingItems(timestamp);
+            } else if (!renderTimer) {
+                renderTimer = setTimeout(() => {
+                    flushPendingItems(timestamp);
+                }, BATCH_DELAY);
+            }
+        }
+    }
+
+    /**
+     * 批量渲染待处理的敏感信息项
+     * @param {string} timestamp - APK时间戳
+     */
+    function flushPendingItems(timestamp) {
+        if (pendingItems.length === 0) return;
+
+        // 检查当前是否还显示该APK
+        const selectedApkIndex = getSelectedApkIndex();
+        const apkListData = getApkListData();
+        if (selectedApkIndex < 0 || apkListData[selectedApkIndex].timestamp !== timestamp) {
+            pendingItems = [];
+            renderTimer = null;
+            return;
+        }
+
+        // 使用DocumentFragment批量插入DOM
+        const fragment = document.createDocumentFragment();
+        pendingItems.forEach(item => {
+            const element = createSensitiveListItemElement(item);
+            fragment.appendChild(element);
+        });
+
+        // 清空placeholder（如果有）
+        const placeholder = sensitiveList.querySelector('.sensitive-placeholder');
+        if (placeholder) {
+            placeholder.remove();
+        }
+
+        sensitiveList.appendChild(fragment);
+        pendingItems = [];
+        renderTimer = null;
+
+        // 更新计数
+        const state = getSensitiveState(timestamp);
+        if (sensitiveStats) {
+            const statsHtml = `共发现 <span class="stats-total">${state.allItems.length}</span> 条敏感信息`;
+            sensitiveStats.innerHTML = statsHtml;
+        }
+    }
+
+    /**
+     * 更新扫描进度
+     * @param {string} timestamp - APK时间戳
+     * @param {number} processed - 已处理文件数
+     * @param {number} total - 总文件数
+     */
+    function updateScanProgress(timestamp, processed, total) {
+        const selectedApkIndex = getSelectedApkIndex();
+        const apkListData = getApkListData();
+        if (selectedApkIndex >= 0 && apkListData[selectedApkIndex].timestamp === timestamp) {
+            const percentage = Math.round((processed / total) * 100);
+            if (sensitiveStats) {
+                sensitiveStats.innerHTML = `扫描中... ${processed}/${total} (${percentage}%)`;
+            }
+        }
+    }
+
+    /**
+     * 标记扫描完成
+     * @param {string} timestamp - APK时间戳
+     * @param {number} total - 总结果数
+     * @param {Object} stats - 统计信息
+     */
+    function markScanComplete(timestamp, total, stats) {
+        const state = getSensitiveState(timestamp);
+        state.scanning = false;
+        state.hasScanned = true;
+        state.stats = stats;
+
+        // 刷新剩余待渲染项
+        flushPendingItems(timestamp);
+
+        // 检查当前是否显示该APK
+        const selectedApkIndex = getSelectedApkIndex();
+        const apkListData = getApkListData();
+        if (selectedApkIndex >= 0 && apkListData[selectedApkIndex].timestamp === timestamp) {
+            toast.show({
+                text: `扫描完成，共发现 ${total} 条敏感信息`,
+                color: 'success',
+                duration: 3000
+            });
+
+            if (stats) {
+                renderSensitiveStats(stats);
+            }
+
+            // 显示重新扫描按钮
+            if (sensitiveRescanBtn) {
+                sensitiveRescanBtn.style.display = 'inline-block';
+            }
+        }
+    }
+
+    /**
+     * 创建敏感信息列表项元素
+     * @param {Object} item - 敏感信息项
+     * @returns {HTMLElement}
+     */
+    function createSensitiveListItemElement(item) {
+        const div = document.createElement('div');
+        div.className = 'sensitive-item';
+        div.dataset.id = item.id;
+
+        const categoryName = categoryNames[item.category] || item.category;
+        const contentPreview = item.content.length > 80 ?
+            item.content.substring(0, 80) + '...' : item.content;
+
+        div.innerHTML = `
+            <div class="sensitive-item-header">
+                <span class="sensitive-item-category">[${escapeHtml(categoryName)}]</span>
+                <span class="sensitive-item-file">${escapeHtml(item.file_path)}</span>
+            </div>
+            <div class="sensitive-item-content">${escapeHtml(contentPreview)}</div>
+            <div class="sensitive-item-location">行 ${item.line_number}, 列 ${item.column_start}-${item.column_end}</div>
+        `;
+
+        div.addEventListener('click', () => {
+            selectSensitiveItem(item);
+        });
+
+        return div;
+    }
+
+    /**
+     * 选中敏感信息项并显示源代码
+     * @param {Object} item - 敏感信息项
+     */
+    async function selectSensitiveItem(item) {
+        const selectedApkIndex = getSelectedApkIndex();
+        const apkListData = getApkListData();
+
+        if (selectedApkIndex < 0) return;
+
+        const apk = apkListData[selectedApkIndex];
+        const state = getSensitiveState(apk.timestamp);
+
+        // 更新选中状态
+        state.selectedId = item.id;
+
+        // 移除所有项的选中状态
+        sensitiveList.querySelectorAll('.sensitive-item').forEach(el => {
+            el.classList.remove('selected');
+        });
+
+        // 添加当前项的选中状态
+        const currentItem = sensitiveList.querySelector(`[data-id="${item.id}"]`);
+        if (currentItem) {
+            currentItem.classList.add('selected');
+        }
+
+        // 加载代码预览
+        await loadSensitiveCodePreview(item.file_path, item.line_number, item.content);
+    }
+
+    /**
+     * 执行敏感信息扫描（重写为使用流式API）
      * @param {boolean} forceRescan - 是否强制重新扫描
      */
     async function performSensitiveScan(forceRescan) {
@@ -302,8 +686,8 @@
         }
 
         const apk = apkListData[selectedApkIndex];
-        if (!apk.isDecompiled) {
-            toast.show({ text: 'APK尚未反编译完成', color: 'warning', duration: 2000 });
+        if (!apk) {
+            toast.show({ text: '请先选择一个APK', color: 'warning', duration: 2000 });
             return;
         }
 
@@ -314,85 +698,113 @@
         }
 
         const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
-        const scanTimestamp = apk.timestamp; // 记录扫描时的APK标识
+        const scanTimestamp = apk.timestamp;
 
-        // 如果是强制重新扫描，先删除缓存文件
+        // 如果是强制重新扫描，先删除缓存文件并重置状态
         if (forceRescan) {
             try {
                 const cachePath = `${apkDir}/sensitive.json`;
                 await invoke('delete_file', { filename: cachePath });
                 console.log('已删除敏感信息缓存文件');
+
+                // 重置状态
+                state.allItems = [];
+                state.hasScanned = false;
+                state.stats = null;
+                pendingItems = [];
+                if (renderTimer) {
+                    clearTimeout(renderTimer);
+                    renderTimer = null;
+                }
             } catch (error) {
-                // 缓存文件可能不存在，忽略错误
                 console.log('删除缓存文件失败或文件不存在:', error);
             }
         }
 
-        // 设置扫描状态
+        // 设置扫描状态并清空UI
         state.scanning = true;
-        refreshSensitiveUI();
+        sensitiveList.innerHTML = '<div class="sensitive-placeholder">扫描中，请稍候...</div>';
+        sensitiveStats.innerHTML = '准备扫描...';
+        sensitivePagination.innerHTML = '';
 
-        // 3秒后显示提示
-        const scanTimeout = setTimeout(() => {
-            toast.show({
-                text: '敏感信息扫描中，请耐心等待...',
-                color: 'warning',
-                duration: 4000
-            });
-        }, 3000);
+        // 清空右侧代码预览区
+        sensitiveCodePath.textContent = '';
+        sensitiveCodeContent.innerHTML = '<div class="sensitive-placeholder">选择左侧敏感信息查看代码位置</div>';
+
+        if (sensitiveRescanBtn) {
+            sensitiveRescanBtn.style.display = 'none';
+        }
+
+        // 提示扫描开始
+        toast.show({
+            text: '开始扫描敏感信息...',
+            color: 'info',
+            duration: 2000
+        });
 
         try {
-            const result = await invoke('scan_sensitive_info', { apkDir });
-
-            clearTimeout(scanTimeout);
-
-            // 更新该APK的状态
-            const currentState = getSensitiveState(scanTimestamp);
-            currentState.scanning = false;
+            // 调用扫描API
+            const result = await invoke('scan_sensitive_info_streaming', { apkDir });
 
             if (!result.success) {
-                // 如果当前显示的还是这个APK，更新UI
+                const currentState = getSensitiveState(scanTimestamp);
+                currentState.scanning = false;
+
                 const currentSelectedIndex = getSelectedApkIndex();
                 const currentApkListData = getApkListData();
                 if (currentSelectedIndex >= 0 && currentApkListData[currentSelectedIndex].timestamp === scanTimestamp) {
                     sensitiveList.innerHTML = `<div class="sensitive-placeholder">${result.message}</div>`;
-                    sensitiveScanBtn.disabled = false;
-                    sensitiveScanBtn.textContent = '扫描';
                 }
                 return;
             }
 
+            // 扫描成功完成，处理结果
+            console.log('[扫描完成] 收到后端返回结果:', result.data);
+
+            const currentState = getSensitiveState(scanTimestamp);
+            currentState.scanning = false;
             currentState.hasScanned = true;
-            currentState.stats = result.data.stats;
-            currentState.currentPage = 0;
+            currentState.allItems = result.data.items || [];
+            currentState.stats = result.data.stats || {};
 
-            if (result.cached) {
-                toast.show({ text: '已加载缓存的扫描结果', color: 'info', duration: 2000 });
-            } else {
-                toast.show({ text: `扫描完成，共发现 ${result.data.total} 条敏感信息`, color: 'success', duration: 3000 });
-            }
-
-            // 如果当前显示的还是这个APK，刷新UI
+            // 检查当前是否还在显示同一个APK
             const currentSelectedIndex = getSelectedApkIndex();
             const currentApkListData = getApkListData();
-            if (currentSelectedIndex >= 0 && currentApkListData[currentSelectedIndex].timestamp === scanTimestamp) {
-                refreshSensitiveUI();
+            if (currentSelectedIndex >= 0 && String(currentApkListData[currentSelectedIndex].timestamp) === String(scanTimestamp)) {
+                // 显示成功提示
+                toast.show({
+                    text: `扫描完成，共发现 ${result.data.total} 条敏感信息`,
+                    color: 'success',
+                    duration: 3000
+                });
+
+                // 渲染统计信息
+                if (currentState.stats) {
+                    renderSensitiveStats(currentState.stats);
+                }
+
+                // 使用分页渲染结果
+                loadSensitivePage();
+
+                // 显示重新扫描按钮
+                if (sensitiveRescanBtn) {
+                    sensitiveRescanBtn.style.display = 'inline-block';
+                }
             }
 
         } catch (error) {
-            clearTimeout(scanTimeout);
             console.error('扫描敏感信息失败:', error);
 
             const currentState = getSensitiveState(scanTimestamp);
             currentState.scanning = false;
 
-            // 如果当前显示的还是这个APK，更新UI
             const currentSelectedIndex = getSelectedApkIndex();
             const currentApkListData = getApkListData();
             if (currentSelectedIndex >= 0 && currentApkListData[currentSelectedIndex].timestamp === scanTimestamp) {
                 sensitiveList.innerHTML = `<div class="sensitive-placeholder">扫描失败: ${error}</div>`;
-                sensitiveScanBtn.disabled = false;
-                sensitiveScanBtn.textContent = '扫描';
+                if (sensitiveRescanBtn) {
+                    sensitiveRescanBtn.style.display = 'inline-block';
+                }
             }
         }
     }
@@ -408,7 +820,7 @@
         }
 
         let html = '';
-        const order = ['url', 'ip', 'access_key', 'number'];
+        const order = ['ip', 'url', 'hae', 'private_key', 'api_key', 'oauth', 'cloud', 'service_account', 'payment', 'platform', 'other'];
 
         for (const cat of order) {
             if (stats[cat]) {
@@ -647,10 +1059,46 @@
             const tdContent = document.createElement('td');
             tdContent.className = 'line-content';
 
-            // 高亮敏感内容
+            // 高亮敏感内容（在已经语法高亮的HTML中匹配）
             if (index + 1 === highlightLine && sensitiveContent) {
-                const regex = new RegExp(`(${escapeRegExp(sensitiveContent)})`, 'g');
-                tdContent.innerHTML = line.replace(regex, '<span class="sensitive-highlight">$1</span>');
+                // 先设置HTML，然后在文本内容中查找并高亮
+                tdContent.innerHTML = line;
+
+                // 使用 TreeWalker 遍历所有文本节点
+                const walker = document.createTreeWalker(
+                    tdContent,
+                    NodeFilter.SHOW_TEXT,
+                    null
+                );
+
+                const textNodes = [];
+                let node;
+                while (node = walker.nextNode()) {
+                    textNodes.push(node);
+                }
+
+                // 在文本节点中查找并替换敏感内容
+                textNodes.forEach(textNode => {
+                    const text = textNode.textContent;
+                    if (text.includes(sensitiveContent)) {
+                        const span = document.createElement('span');
+                        const parts = text.split(sensitiveContent);
+
+                        parts.forEach((part, i) => {
+                            if (i > 0) {
+                                const highlight = document.createElement('span');
+                                highlight.className = 'sensitive-highlight';
+                                highlight.textContent = sensitiveContent;
+                                span.appendChild(highlight);
+                            }
+                            if (part) {
+                                span.appendChild(document.createTextNode(part));
+                            }
+                        });
+
+                        textNode.parentNode.replaceChild(span, textNode);
+                    }
+                });
             } else {
                 tdContent.innerHTML = line;
             }
@@ -685,32 +1133,191 @@
         if (!apk.isDecompiled) return;
 
         const state = getSensitiveState(apk.timestamp);
-        if (state.scanning || state.hasScanned) return; // 正在扫描或已扫描，不重复加载
+        if (state.hasScanned) return; // 已扫描，不重复加载
 
         const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
+        const cachePath = `${apkDir}/sensitive.json`;
 
         try {
-            const result = await invoke('get_sensitive_info', {
-                apkDir,
-                page: 0,
-                pageSize: parseInt(sensitivePageSize.value, 10),
-                category: sensitiveCategory.value
-            });
+            // 检查缓存文件是否存在
+            const fileExists = await invoke('file_exists', { filename: cachePath });
 
-            if (result.success) {
+            if (!fileExists) {
+                // 缓存不存在，标记为扫描状态，启动轮询
+                console.log('[缓存检查] 缓存不存在，启动轮询等待后台扫描');
+                state.scanning = true;
+
+                // 更新UI状态为扫描中
+                sensitiveList.innerHTML = '<div class="sensitive-placeholder">扫描中，请稍候...</div>';
+                sensitiveStats.innerHTML = '扫描中...';
+
+                // 启动轮询检查缓存
+                startPollingForCache(apk.timestamp, cachePath);
+                return;
+            }
+
+            // 读取缓存文件
+            const cacheContent = await invoke('read_file', { filename: cachePath });
+            const cachedData = JSON.parse(cacheContent);
+
+            if (cachedData && cachedData.items) {
+                // 加载缓存数据到状态
+                state.scanning = false;
                 state.hasScanned = true;
-                state.stats = result.stats;
-                state.totalPages = result.totalPages;
-                state.currentPage = 0;
-                renderSensitiveStats(result.stats);
-                renderSensitiveList(result.items, apk.timestamp);
-                renderSensitivePagination(result.page, result.totalPages, result.total, apk.timestamp);
+                state.allItems = cachedData.items;
+                state.stats = cachedData.stats;
 
-                // 有缓存数据，显示重新扫描按钮
-                sensitiveRescanBtn.style.display = 'inline-block';
+                // 检查当前是否还显示该APK
+                const currentSelectedIndex = getSelectedApkIndex();
+                const currentApkListData = getApkListData();
+                if (currentSelectedIndex >= 0 && String(currentApkListData[currentSelectedIndex].timestamp) === String(apk.timestamp)) {
+                    // 渲染统计信息
+                    if (cachedData.stats) {
+                        renderSensitiveStats(cachedData.stats);
+                    }
+
+                    // 使用分页渲染
+                    loadSensitivePage();
+
+                    // 显示重新扫描按钮
+                    if (sensitiveRescanBtn) {
+                        sensitiveRescanBtn.style.display = 'inline-block';
+                    }
+
+                    console.log(`[缓存检查] 已加载缓存，共 ${cachedData.items.length} 条敏感信息`);
+                }
             }
         } catch (error) {
-            // 没有缓存，不处理
+            // 缓存加载失败，启动轮询
+            console.log('[缓存检查] 缓存加载失败，启动轮询:', error);
+            state.scanning = true;
+
+            sensitiveList.innerHTML = '<div class="sensitive-placeholder">扫描中，请稍候...</div>';
+            sensitiveStats.innerHTML = '扫描中...';
+
+            startPollingForCache(apk.timestamp, cachePath);
+        }
+    }
+
+    // 轮询定时器
+    let pollingTimer = null;
+    let pollingTimestamp = null;
+
+    /**
+     * 启动轮询检查缓存文件
+     * @param {string} timestamp - APK时间戳
+     * @param {string} cachePath - 缓存文件路径
+     */
+    function startPollingForCache(timestamp, cachePath) {
+        // 如果已经在轮询同一个APK，不重复启动
+        if (pollingTimer && pollingTimestamp === timestamp) {
+            return;
+        }
+
+        // 清除之前的轮询
+        if (pollingTimer) {
+            clearInterval(pollingTimer);
+        }
+
+        pollingTimestamp = timestamp;
+        let pollCount = 0;
+        const maxPolls = 120; // 最多轮询2分钟（每秒1次）
+
+        console.log(`[轮询] 开始轮询缓存文件: ${cachePath}`);
+
+        pollingTimer = setInterval(async () => {
+            pollCount++;
+
+            // 检查是否还在显示同一个APK
+            const selectedApkIndex = getSelectedApkIndex();
+            const apkListData = getApkListData();
+            if (selectedApkIndex < 0 || String(apkListData[selectedApkIndex].timestamp) !== String(timestamp)) {
+                console.log('[轮询] APK已切换，停止轮询');
+                clearInterval(pollingTimer);
+                pollingTimer = null;
+                pollingTimestamp = null;
+                return;
+            }
+
+            try {
+                const fileExists = await invoke('file_exists', { filename: cachePath });
+
+                if (fileExists) {
+                    console.log(`[轮询] 发现缓存文件，尝试加载`);
+                    clearInterval(pollingTimer);
+                    pollingTimer = null;
+                    pollingTimestamp = null;
+
+                    // 加载缓存
+                    const cacheContent = await invoke('read_file', { filename: cachePath });
+                    const cachedData = JSON.parse(cacheContent);
+
+                    if (cachedData && cachedData.items) {
+                        const state = getSensitiveState(timestamp);
+                        state.scanning = false;
+                        state.hasScanned = true;
+                        state.allItems = cachedData.items;
+                        state.stats = cachedData.stats;
+
+                        // 再次检查是否还在显示同一个APK
+                        const currentSelectedIndex = getSelectedApkIndex();
+                        const currentApkListData = getApkListData();
+                        if (currentSelectedIndex >= 0 && String(currentApkListData[currentSelectedIndex].timestamp) === String(timestamp)) {
+                            // 检查是否在敏感信息tab
+                            const sensitiveTab = document.querySelector('[data-tab="sensitive"]');
+                            if (sensitiveTab && sensitiveTab.classList.contains('active')) {
+                                if (cachedData.stats) {
+                                    renderSensitiveStats(cachedData.stats);
+                                }
+
+                                // 使用分页渲染
+                                loadSensitivePage();
+
+                                if (sensitiveRescanBtn) {
+                                    sensitiveRescanBtn.style.display = 'inline-block';
+                                }
+
+                                toast.show({
+                                    text: `扫描完成，共发现 ${cachedData.items.length} 条敏感信息`,
+                                    color: 'success',
+                                    duration: 3000
+                                });
+                            }
+                        }
+
+                        console.log(`[轮询] 缓存加载成功，共 ${cachedData.items.length} 条`);
+                    }
+                }
+            } catch (error) {
+                // 忽略错误，继续轮询
+            }
+
+            // 超过最大轮询次数，停止
+            if (pollCount >= maxPolls) {
+                console.log('[轮询] 超时，停止轮询');
+                clearInterval(pollingTimer);
+                pollingTimer = null;
+                pollingTimestamp = null;
+
+                const state = getSensitiveState(timestamp);
+                state.scanning = false;
+
+                sensitiveList.innerHTML = '<div class="sensitive-placeholder">扫描超时，请点击重新扫描</div>';
+                if (sensitiveRescanBtn) {
+                    sensitiveRescanBtn.style.display = 'inline-block';
+                }
+            }
+        }, 1000); // 每秒检查一次
+    }
+
+    /**
+     * 停止轮询
+     */
+    function stopPolling() {
+        if (pollingTimer) {
+            clearInterval(pollingTimer);
+            pollingTimer = null;
+            pollingTimestamp = null;
         }
     }
 
@@ -764,6 +1371,52 @@
         return sensitiveStateMap;
     }
 
+    /**
+     * 清理所有事件监听器
+     */
+    async function cleanupAllListeners() {
+        console.log('清理所有敏感信息事件监听器');
+        for (const [timestamp, state] of sensitiveStateMap.entries()) {
+            if (state.eventUnlisteners && state.eventUnlisteners.length > 0) {
+                console.log(`清理 APK ${timestamp} 的 ${state.eventUnlisteners.length} 个监听器`);
+                for (const unlisten of state.eventUnlisteners) {
+                    try {
+                        await unlisten();
+                    } catch (error) {
+                        console.warn('清除监听器失败:', error);
+                    }
+                }
+                state.eventUnlisteners = [];
+            }
+        }
+    }
+
+    /**
+     * 清理指定APK的事件监听器
+     * @param {string} timestamp - APK时间戳
+     */
+    async function cleanupListenersForApk(timestamp) {
+        const state = getSensitiveState(timestamp);
+        if (state.eventUnlisteners && state.eventUnlisteners.length > 0) {
+            console.log(`清理 APK ${timestamp} 的 ${state.eventUnlisteners.length} 个监听器`);
+            for (const unlisten of state.eventUnlisteners) {
+                try {
+                    await unlisten();
+                } catch (error) {
+                    console.warn('清除监听器失败:', error);
+                }
+            }
+            state.eventUnlisteners = [];
+        }
+    }
+
+    // 页面卸载时清理所有监听器
+    window.addEventListener('beforeunload', () => {
+        cleanupAllListeners().catch(err => {
+            console.error('清理监听器失败:', err);
+        });
+    });
+
     // 暴露模块接口
     window.SensitiveModule = {
         init,
@@ -779,7 +1432,9 @@
         checkAndLoadSensitiveCache,
         getSensitiveState,
         getCategoryNames,
-        getStateMap
+        getStateMap,
+        cleanupAllListeners,
+        cleanupListenersForApk
     };
 
 })();

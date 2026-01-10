@@ -39,6 +39,10 @@ rayon = "1.10"
 memmap2 = "0.9"
 chrono = "0.4"
 lazy_static = "1.4"
+zip = "2.2"
+quick-xml = "0.37"
+byteorder = "1.5"
+axmldecoder = "0.3"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["winuser", "processthreadsapi"] }

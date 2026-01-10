@@ -64,7 +64,48 @@
     }
 
     /**
+     * 从缓存文件加载权限数据
+     * @param {string} apkDir - APK目录
+     * @returns {Object|null} 缓存的权限数据，如果不存在返回null
+     */
+    async function loadCachedPermissions(apkDir) {
+        try {
+            const cacheFile = `${apkDir}/permissions_cache.json`;
+            const content = await invoke('read_file', { filename: cacheFile });
+            if (content) {
+                const data = JSON.parse(content);
+                console.log('从缓存加载权限数据');
+                return data;
+            }
+        } catch (error) {
+            console.log('权限缓存文件不存在或读取失败:', error);
+        }
+        return null;
+    }
+
+    /**
+     * 保存权限数据到缓存文件
+     * @param {string} apkDir - APK目录
+     * @param {Object} data - 权限数据
+     */
+    async function saveCachedPermissions(apkDir, data) {
+        try {
+            const cacheFile = `${apkDir}/permissions_cache.json`;
+            const content = JSON.stringify(data, null, 2);
+            await invoke('write_file', {
+                filename: cacheFile,
+                content: content
+            });
+            console.log('权限数据已保存到缓存');
+        } catch (error) {
+            console.error('保存权限缓存失败:', error);
+        }
+    }
+
+    /**
      * 加载APK权限
+     * 支持快速模式（直接解析APK）和标准模式（依赖jadx反编译）
+     * 优先从缓存读取，如果没有则进行分析并保存
      * @param {Object} apk - APK对象
      */
     async function loadPermissions(apk) {
@@ -75,8 +116,12 @@
             return;
         }
 
-        if (!apk.isDecompiled) {
-            permissionsPanel.innerHTML = '<div class="operation-panel-placeholder">APK正在反编译中，请稍候...</div>';
+        const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
+
+        // 尝试从缓存加载
+        const cachedData = await loadCachedPermissions(apkDir);
+        if (cachedData && cachedData.permissions && cachedData.stats) {
+            renderPermissions(cachedData.permissions, cachedData.stats);
             return;
         }
 
@@ -84,7 +129,28 @@
         permissionsPanel.innerHTML = '<div class="permissions-loading"><div class="spinner"></div><span>加载权限信息...</span></div>';
 
         try {
-            const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
+            // 优先尝试快速分析API
+            try {
+                const quickResult = await invoke('get_apk_permissions_quick', { apkDir: apkDir });
+                if (quickResult.success) {
+                    // 保存到缓存
+                    await saveCachedPermissions(apkDir, {
+                        permissions: quickResult.permissions,
+                        stats: quickResult.stats
+                    });
+                    renderPermissions(quickResult.permissions, quickResult.stats);
+                    return;
+                }
+            } catch (e) {
+                console.log('快速权限分析失败，尝试标准方法:', e);
+            }
+
+            // 回退到标准API（需要jadx反编译）
+            if (!apk.isDecompiled) {
+                permissionsPanel.innerHTML = '<div class="operation-panel-placeholder">APK正在反编译中，请稍候...</div>';
+                return;
+            }
+
             const result = await invoke('get_apk_permissions', { apkDir: apkDir });
 
             if (!result.success) {
@@ -92,6 +158,11 @@
                 return;
             }
 
+            // 保存到缓存
+            await saveCachedPermissions(apkDir, {
+                permissions: result.permissions,
+                stats: result.stats
+            });
             renderPermissions(result.permissions, result.stats);
         } catch (error) {
             console.error('获取权限失败:', error);

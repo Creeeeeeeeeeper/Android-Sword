@@ -1,6 +1,10 @@
 /**
  * APK模块 - 处理APK文件的添加、反编译、列表管理等功能
  * 负责APK上传、反编译、列表渲染、右键菜单、安装/删除等操作
+ *
+ * 支持两种分析模式：
+ * 1. 快速分析：直接解析APK文件，不生成额外文件
+ * 2. 深度分析（jadx反编译）：反编译APK到文件夹，支持源码查看
  */
 
 window.ApkModule = (function() {
@@ -141,6 +145,7 @@ window.ApkModule = (function() {
 
             // 刷新列表并自动选中新反编译的APK
             await refreshApkListAndSelect(timestamp);
+
         } catch (error) {
             console.error('APK反编译失败:', error);
             toast.show({
@@ -557,6 +562,11 @@ window.ApkModule = (function() {
         try {
             const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
 
+            // 清理该APK的事件监听器
+            if (window.SensitiveModule && window.SensitiveModule.cleanupListenersForApk) {
+                await window.SensitiveModule.cleanupListenersForApk(apk.timestamp);
+            }
+
             // 删除整个APK目录
             await invoke('delete_dir', { dirname: apkDir });
 
@@ -684,6 +694,7 @@ window.ApkModule = (function() {
 
     /**
      * 处理添加APK按钮点击
+     * 采用快速分析优先策略：先进行快速分析（不依赖jadx），然后后台进行jadx反编译
      */
     async function handleAddApk() {
         console.log('点击添加APK...');
@@ -747,16 +758,38 @@ window.ApkModule = (function() {
             addApkBtn.textContent = '+ 添加';
             addApkBtn.disabled = false;
 
-            toast.show({
-                text: 'APK添加成功，开始反编译...',
-                color: 'success',
-                duration: 3000
-            });
+            // 立即进行快速分析（不依赖jadx）
+            try {
+                console.log('开始快速分析APK...');
+                addApkBtn.textContent = '分析中...';
+                addApkBtn.disabled = true;
 
-            // 先刷新列表显示正在反编译状态
+                // 执行快速分析
+                const quickResult = await invoke('quick_analyze_apk', { apkDir: apkDir });
+                if (quickResult.success) {
+                    console.log('快速分析成功:', quickResult);
+                    toast.show({
+                        text: 'APK添加成功，快速分析完成',
+                        color: 'success',
+                        duration: 3000
+                    });
+                } else {
+                    console.log('快速分析未成功:', quickResult.message);
+                }
+            } catch (quickError) {
+                console.log('快速分析失败:', quickError);
+            } finally {
+                addApkBtn.textContent = '+ 添加';
+                addApkBtn.disabled = false;
+            }
+
+            // 预分析APK详细信息（哈希和签名）
+            preanalyzeApkDetails(apkDir);
+
+            // 先刷新列表显示APK（快速分析已完成，可以立即使用部分功能）
             await refreshApkList();
 
-            // 启动反编译（异步，不阻塞）
+            // 后台启动jadx反编译（异步，不阻塞用户操作）
             const filePath = `${apkDir}/base.apk`;
             decompileApk(filePath, apkDir, timestamp);
         } catch (error) {

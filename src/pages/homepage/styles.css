@@ -390,7 +390,7 @@ html body {
 .about-label {
     color: #ffffff;
     font-weight: 600;
-    min-width: 80px;
+    /* min-width: 80px; */
     user-select: none;
 }
 

@@ -145,22 +145,28 @@
                                     <div class="sensitive-toolbar">
                                         <select id="sensitive-category" class="sensitive-select">
                                             <option value="all">全部</option>
-                                            <option value="url">URL</option>
                                             <option value="ip">IP地址</option>
-                                            <option value="access_key">AccessKey</option>
-                                            <option value="number">纯数字字符串</option>
+                                            <option value="url">URL地址</option>
+                                            <option value="hae">HAE敏感信息</option>
+                                            <option value="private_key">私钥和证书</option>
+                                            <option value="api_key">API密钥和令牌</option>
+                                            <option value="oauth">OAuth和认证令牌</option>
+                                            <option value="cloud">云平台凭证</option>
+                                            <option value="service_account">服务账号凭证</option>
+                                            <option value="payment">支付相关密钥</option>
+                                            <option value="platform">平台服务密钥</option>
+                                            <option value="other">其他敏感信息</option>
                                         </select>
                                         <select id="sensitive-page-size" class="sensitive-select">
                                             <option value="20">每页20条</option>
                                             <option value="50">每页50条</option>
                                             <option value="100">每页100条</option>
                                         </select>
-                                        <button id="sensitive-scan-btn" class="sensitive-scan-btn">扫描</button>
                                         <button id="sensitive-rescan-btn" class="sensitive-rescan-btn">重新扫描</button>
                                     </div>
                                     <div class="sensitive-stats" id="sensitive-stats"></div>
                                     <div class="sensitive-list" id="sensitive-list">
-                                        <div class="sensitive-placeholder">点击扫描按钮开始分析敏感信息</div>
+                                        <div class="sensitive-placeholder">请先添加APK，系统将自动扫描敏感信息</div>
                                     </div>
                                     <div class="sensitive-pagination" id="sensitive-pagination"></div>
                                 </div>
@@ -399,12 +405,13 @@
     <!-- 搜索蒙层 -->
     <div id="search-overlay" class="fullscreen-overlay hidden">
         <div class="search-overlay-container">
+            <button id="search-close-btn" class="overlay-close-btn search-overlay-close" title="关闭 (ESC)">✕</button>
             <div class="search-header">
+                <span class="search-header-title">搜索</span>
                 <div class="search-input-wrapper">
-                    <input type="text" id="search-input" class="search-input" placeholder="搜索内容..." autofocus>
+                    <input type="text" id="search-input" class="search-input" placeholder="搜索内容..." autocomplete="off" autofocus>
                     <span class="search-count" id="search-count"></span>
                 </div>
-                <button id="search-close-btn" class="overlay-close-btn" title="关闭">✕</button>
             </div>
             <div class="search-content">
                 <div class="search-results-panel" id="search-results-panel">

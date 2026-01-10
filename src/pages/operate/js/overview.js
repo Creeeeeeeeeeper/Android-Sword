@@ -72,6 +72,7 @@
 
     /**
      * 加载总览信息
+     * 支持快速模式：即使未反编译也可以显示基本信息
      * @param {Object} apk - APK对象
      */
     async function loadOverview(apk) {
@@ -88,25 +89,56 @@
             return;
         }
 
-        if (!apk.isDecompiled) {
-            basicInfoContent.innerHTML = '<div class="overview-placeholder">APK正在反编译中...</div>';
-            permissionsContent.innerHTML = '<div class="overview-placeholder">APK正在反编译中...</div>';
-            signatureContent.innerHTML = '<div class="overview-placeholder">APK正在反编译中...</div>';
-            ipContent.innerHTML = '<div class="overview-placeholder">APK正在反编译中...</div>';
-            return;
-        }
-
-        // 加载基本信息
+        // 加载基本信息（快速模式可用）
         renderOverviewBasicInfo(apk);
 
-        // 加载权限统计
-        loadOverviewPermissions(apk);
+        // 加载权限统计（优先使用快速分析）
+        loadOverviewPermissionsQuick(apk);
 
-        // 加载签名信息
+        // 加载签名信息（直接从APK读取，不依赖jadx）
         loadOverviewSignature(apk);
 
-        // 加载IP检测
+        // IP检测（现在不依赖反编译，直接从敏感信息扫描结果读取）
         loadOverviewIPs(apk);
+    }
+
+    /**
+     * 快速加载权限统计（优先使用快速分析API）
+     * @param {Object} apk - APK对象
+     */
+    async function loadOverviewPermissionsQuick(apk) {
+        const permissionsContent = document.getElementById('overview-permissions-content');
+        permissionsContent.innerHTML = '<div class="overview-loading"><div class="spinner-small"></div></div>';
+
+        try {
+            const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
+
+            // 优先尝试快速分析API
+            try {
+                const quickResult = await invoke('get_apk_permissions_quick', { apkDir: apkDir });
+                if (quickResult.success) {
+                    renderOverviewPermissions(quickResult.stats);
+                    return;
+                }
+            } catch (e) {
+                console.log('快速权限分析失败，尝试标准方法:', e);
+            }
+
+            // 回退到标准API（需要jadx反编译）
+            if (apk.isDecompiled) {
+                const result = await invoke('get_apk_permissions', { apkDir: apkDir });
+                if (result.success) {
+                    renderOverviewPermissions(result.stats);
+                    return;
+                }
+                permissionsContent.innerHTML = `<div class="overview-placeholder">${result.message}</div>`;
+            } else {
+                permissionsContent.innerHTML = '<div class="overview-placeholder">正在反编译中...</div>';
+            }
+        } catch (error) {
+            console.error('获取权限统计失败:', error);
+            permissionsContent.innerHTML = '<div class="overview-placeholder">获取权限统计失败</div>';
+        }
     }
 
     /**
@@ -357,12 +389,54 @@
         const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
         const ipCacheFile = `${apkDir}/ip_check.json`;
 
-        // 检查是否正在检测中
-        if (ipCheckingMap.has(apkTimestamp) && !forceRescan) {
-            // 显示检测中状态
-            const checkingState = ipCheckingMap.get(apkTimestamp);
-            ipContent.innerHTML = '<div class="overview-loading"><div class="spinner-small"></div></div>';
-            ipStatus.innerHTML = `检测中 <span class="ip-progress">${checkingState.checked}/${checkingState.total}</span>`;
+        // 检查是否正在检测中或已完成
+        const checkingState = ipCheckingMap.get(apkTimestamp);
+        if (checkingState && !forceRescan) {
+            // 如果检测已完成，直接渲染结果
+            if (checkingState.completed) {
+                console.log('IP检测 - 已完成，直接渲染结果');
+                renderIPList(checkingState.resultIPs, checkingState.privateCount, checkingState.publicCount);
+                ipStatus.textContent = `共 ${checkingState.privateCount + checkingState.publicCount} 个`;
+                rescanBtn.style.display = 'inline-block';
+                // 清理状态
+                ipCheckingMap.delete(apkTimestamp);
+                return;
+            }
+
+            // 如果正在检测中，显示当前进度和已检测到的IP
+            console.log('IP检测 - 检测中，显示当前进度');
+            ipContent.innerHTML = '<div class="overview-ip-list" id="overview-ip-list"></div>';
+            const ipList = document.getElementById('overview-ip-list');
+
+            // 渲染私有IP（如果有）
+            if (checkingState.privateIPs && checkingState.privateIPs.length > 0) {
+                for (const ip of checkingState.privateIPs) {
+                    const ipItem = document.createElement('div');
+                    ipItem.className = 'overview-ip-item private';
+                    ipItem.innerHTML = `
+                        <span class="overview-ip-address">${ip}</span>
+                        <span class="overview-ip-tag private">内网</span>
+                    `;
+                    ipList.appendChild(ipItem);
+                }
+            }
+
+            // 渲染已检测到的公网IP（如果有）
+            if (checkingState.reachableIPs && checkingState.reachableIPs.length > 0) {
+                for (const ipItem of checkingState.reachableIPs) {
+                    if (ipItem.type === 'public') {
+                        const ipElem = document.createElement('div');
+                        ipElem.className = 'overview-ip-item public';
+                        ipElem.innerHTML = `
+                            <span class="overview-ip-address">${ipItem.ip}</span>
+                            <span class="overview-ip-tag public">公网</span>
+                        `;
+                        ipList.appendChild(ipElem);
+                    }
+                }
+            }
+
+            ipStatus.innerHTML = `检测中 <span class="ip-progress">${checkingState.checked || 0}/${checkingState.total || 0}</span>`;
             rescanBtn.style.display = 'none';
             return;
         }
@@ -505,6 +579,8 @@
             if (checkState) {
                 checkState.total = publicIPs.length;
                 checkState.checked = 0;
+                checkState.privateIPs = privateIPs;  // 保存私有IP列表
+                checkState.reachableIPs = [];  // 初始化已检测的公网IP列表
             }
 
             // 更新UI显示私有IP
@@ -584,7 +660,12 @@
                         reachableCount++;
                         resultIPs.push({ ip, type: 'public' });
 
-                        // 更新UI添加可达的公网IP
+                        // 更新状态中的结果（无论是否在当前页面）
+                        if (currentState) {
+                            currentState.reachableIPs = resultIPs.filter(item => item.type === 'public');  // 保存当前已发现的公网IP
+                        }
+
+                        // 更新UI添加可达的公网IP（仅当在overview页面时）
                         updateIPUIIfCurrent(apkTimestamp, () => {
                             const ipList = document.getElementById('overview-ip-list');
                             const ipStatus = document.getElementById('overview-ip-status');
@@ -600,7 +681,7 @@
                             ipStatus.innerHTML = `检测中 <span class="ip-progress">${checkedCount}/${publicIPs.length}</span>`;
                         });
                     } else {
-                        // 只更新进度
+                        // 只更新进度（仅当在overview页面时）
                         updateIPUIIfCurrent(apkTimestamp, () => {
                             const ipStatus = document.getElementById('overview-ip-status');
                             ipStatus.innerHTML = `检测中 <span class="ip-progress">${checkedCount}/${publicIPs.length}</span>`;
@@ -611,9 +692,19 @@
 
             // 检测完成，保存结果到缓存
             await saveIPCache(ipCacheFile, resultIPs, privateIPs.length, reachableCount);
-            ipCheckingMap.delete(apkTimestamp);
+
+            // 标记检测完成（保留状态信息，用于切换回来时渲染）
+            const finalState = ipCheckingMap.get(apkTimestamp);
+            if (finalState) {
+                finalState.completed = true;
+                finalState.resultIPs = resultIPs;
+                finalState.privateCount = privateIPs.length;
+                finalState.publicCount = reachableCount;
+            }
 
             const totalCount = privateIPs.length + reachableCount;
+
+            // 总是尝试更新UI（无论是否在当前页面）
             updateIPUIIfCurrent(apkTimestamp, () => {
                 const ipContent = document.getElementById('overview-ip-content');
                 const ipStatus = document.getElementById('overview-ip-status');
@@ -626,7 +717,13 @@
                     ipStatus.textContent = `共 ${totalCount} 个`;
                 }
                 rescanBtn.style.display = 'inline-block';
+
+                // 如果成功渲染了，就删除状态
+                ipCheckingMap.delete(apkTimestamp);
             });
+
+            // 如果当前不在overview页面，保留状态不删除
+            // 用户切换回来时会自动渲染并删除状态
 
             console.log('IP检测 - 完成:', apkTimestamp);
 
@@ -732,6 +829,7 @@
         loadOverview,
         renderOverviewBasicInfo,
         loadOverviewPermissions,
+        loadOverviewPermissionsQuick,
         renderOverviewPermissions,
         loadOverviewSignature,
         renderOverviewSignature,

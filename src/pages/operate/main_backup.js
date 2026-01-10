@@ -3511,7 +3511,7 @@ document.addEventListener('DOMContentLoaded', function() {
             currentState.currentPage = 0;
 
             if (result.cached) {
-                toast.show({ text: '已加载缓存的扫描结果', color: 'info', duration: 2000 });
+                toast.show({ text: '的扫描结果', color: 'info', duration: 2000 });
             } else {
                 toast.show({ text: `扫描完成，共发现 ${result.data.total} 条敏感信息`, color: 'success', duration: 3000 });
             }

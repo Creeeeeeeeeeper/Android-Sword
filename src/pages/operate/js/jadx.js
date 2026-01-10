@@ -137,6 +137,8 @@ window.JadxModule = (function() {
         // 打开搜索
         if (jadxSearchBtn) {
             jadxSearchBtn.addEventListener('click', () => {
+                // 打开搜索界面并清空之前的搜索
+                clearSearchState();
                 searchOverlay.classList.remove('hidden');
                 searchInput.focus();
             });
@@ -146,6 +148,8 @@ window.JadxModule = (function() {
         if (searchCloseBtn) {
             searchCloseBtn.addEventListener('click', () => {
                 searchOverlay.classList.add('hidden');
+                // 关闭时也清空搜索状态
+                clearSearchState();
             });
         }
 
@@ -169,6 +173,29 @@ window.JadxModule = (function() {
     }
 
     /**
+     * 清空搜索状态
+     */
+    function clearSearchState() {
+        searchResults = [];
+        selectedSearchIndex = -1;
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        if (searchResultsList) {
+            searchResultsList.innerHTML = '<div class="search-placeholder">输入搜索内容</div>';
+        }
+        if (searchCount) {
+            searchCount.textContent = '';
+        }
+        if (searchPreviewContent) {
+            searchPreviewContent.innerHTML = '<div class="search-placeholder">选择左侧结果预览</div>';
+        }
+        if (searchPreviewPath) {
+            searchPreviewPath.textContent = '';
+        }
+    }
+
+    /**
      * 处理打开JADX查看器
      */
     async function handleOpenJadxViewer() {
@@ -186,6 +213,10 @@ window.JadxModule = (function() {
         }
 
         jadxOverlay.classList.remove('hidden');
+
+        // 清空搜索状态
+        clearSearchState();
+
         await loadJadxFileTree();
     }
 
@@ -196,12 +227,14 @@ window.JadxModule = (function() {
         // Ctrl+F 打开搜索
         if (e.ctrlKey && e.key === 'f' && !jadxOverlay.classList.contains('hidden')) {
             e.preventDefault();
+            clearSearchState();
             searchOverlay.classList.remove('hidden');
             searchInput.focus();
         }
         // ESC 关闭搜索蒙层
         if (e.key === 'Escape' && !searchOverlay.classList.contains('hidden')) {
             searchOverlay.classList.add('hidden');
+            clearSearchState();
         }
     }
 
@@ -234,108 +267,169 @@ window.JadxModule = (function() {
         }
     }
 
+    // 分批渲染配置
+    const BATCH_SIZE = 100; // 每批渲染的节点数
+    const BATCH_DELAY = 10; // 批次间隔（毫秒）
+
     /**
-     * 渲染文件树（懒加载版本）
+     * 渲染文件树（懒加载版本，支持分批渲染）
+     * @param {Array} nodes - 节点数组
+     * @param {HTMLElement} container - 容器元素
+     * @param {number} level - 层级
+     * @returns {Promise<void>}
+     */
+    async function renderFileTree(nodes, container, level = 0) {
+        // 对于大量节点，使用分批渲染
+        if (nodes.length > BATCH_SIZE) {
+            await renderFileTreeBatched(nodes, container, level);
+        } else {
+            renderFileTreeSync(nodes, container, level);
+        }
+    }
+
+    /**
+     * 分批渲染文件树
      * @param {Array} nodes - 节点数组
      * @param {HTMLElement} container - 容器元素
      * @param {number} level - 层级
      */
-    function renderFileTree(nodes, container, level = 0) {
+    async function renderFileTreeBatched(nodes, container, level) {
+        for (let i = 0; i < nodes.length; i += BATCH_SIZE) {
+            const batch = nodes.slice(i, i + BATCH_SIZE);
+            const fragment = document.createDocumentFragment();
+
+            batch.forEach(node => {
+                const nodeEl = createTreeNode(node, level);
+                fragment.appendChild(nodeEl);
+            });
+
+            container.appendChild(fragment);
+
+            // 每批次渲染后让出主线程（最后一批不需要等待）
+            if (i + BATCH_SIZE < nodes.length) {
+                await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
+            }
+        }
+    }
+
+    /**
+     * 同步渲染文件树（小量数据）
+     * @param {Array} nodes - 节点数组
+     * @param {HTMLElement} container - 容器元素
+     * @param {number} level - 层级
+     */
+    function renderFileTreeSync(nodes, container, level) {
+        const fragment = document.createDocumentFragment();
+
         nodes.forEach(node => {
-            const nodeEl = document.createElement('div');
-            nodeEl.className = 'tree-node';
-            nodeEl.dataset.path = node.path;
+            const nodeEl = createTreeNode(node, level);
+            fragment.appendChild(nodeEl);
+        });
 
-            const headerEl = document.createElement('div');
-            headerEl.className = 'tree-node-header';
-            headerEl.style.paddingLeft = `${8 + level * 12}px`;
+        container.appendChild(fragment);
+    }
 
-            if (node.is_dir) {
-                headerEl.innerHTML = `
-                    <span class="tree-node-toggle">${node.has_children ? '>' : ''}</span>
-                    <span class="tree-node-icon">&#128193;</span>
-                    <span class="tree-node-name">${escapeHtml(node.name)}</span>
-                `;
+    /**
+     * 创建单个树节点元素
+     * @param {Object} node - 节点数据
+     * @param {number} level - 层级
+     * @returns {HTMLElement}
+     */
+    function createTreeNode(node, level) {
+        const nodeEl = document.createElement('div');
+        nodeEl.className = 'tree-node';
+        nodeEl.dataset.path = node.path;
 
-                const childrenEl = document.createElement('div');
-                childrenEl.className = 'tree-node-children collapsed';
-                childrenEl.dataset.loaded = 'false';
+        const headerEl = document.createElement('div');
+        headerEl.className = 'tree-node-header';
+        headerEl.style.paddingLeft = `${8 + level * 12}px`;
 
-                headerEl.addEventListener('click', async (e) => {
-                    e.stopPropagation();
+        if (node.is_dir) {
+            headerEl.innerHTML = `
+                <span class="tree-node-toggle">${node.has_children ? '>' : ''}</span>
+                <span class="tree-node-icon">&#128193;</span>
+                <span class="tree-node-name">${escapeHtml(node.name)}</span>
+            `;
 
-                    if (!node.has_children) return;
+            const childrenEl = document.createElement('div');
+            childrenEl.className = 'tree-node-children collapsed';
+            childrenEl.dataset.loaded = 'false';
 
-                    const toggle = headerEl.querySelector('.tree-node-toggle');
-                    const icon = headerEl.querySelector('.tree-node-icon');
+            headerEl.addEventListener('click', async (e) => {
+                e.stopPropagation();
 
-                    if (childrenEl.classList.contains('collapsed')) {
-                        // 展开
-                        if (childrenEl.dataset.loaded === 'false') {
-                            // 懒加载子目录 - 显示加载中的旋转圆圈
-                            toggle.textContent = '';
-                            toggle.classList.add('loading');
+                if (!node.has_children) return;
 
-                            // 3秒后显示提示
-                            const loadingTimeout = setTimeout(() => {
-                                toast.show({
-                                    text: `${node.name} 文件夹中文件较多，加载时间较长，请耐心等待`,
-                                    color: 'warning',
-                                    duration: 4000
-                                });
-                            }, 3000);
+                const toggle = headerEl.querySelector('.tree-node-toggle');
+                const icon = headerEl.querySelector('.tree-node-icon');
 
-                            const success = await loadSubdirectory(node.path, childrenEl, level + 1);
+                if (childrenEl.classList.contains('collapsed')) {
+                    // 展开
+                    if (childrenEl.dataset.loaded === 'false') {
+                        // 懒加载子目录 - 显示加载中的旋转圆圈
+                        toggle.textContent = '';
+                        toggle.classList.add('loading');
 
-                            // 清除超时提示
-                            clearTimeout(loadingTimeout);
+                        // 1.5秒后显示提示（缩短等待时间）
+                        const loadingTimeout = setTimeout(() => {
+                            toast.show({
+                                text: `${node.name} 文件夹加载中...`,
+                                color: 'info',
+                                duration: 3000
+                            });
+                        }, 1500);
 
-                            toggle.classList.remove('loading');
-                            if (success) {
-                                childrenEl.dataset.loaded = 'true';
-                                childrenEl.classList.remove('collapsed');
-                                toggle.textContent = 'v';
-                                toggle.classList.add('expanded');
-                                icon.innerHTML = '&#128194;';
-                            } else {
-                                // 加载失败，恢复箭头状态
-                                toggle.textContent = '>';
-                            }
-                        } else {
+                        const success = await loadSubdirectory(node.path, childrenEl, level + 1);
+
+                        // 清除超时提示
+                        clearTimeout(loadingTimeout);
+
+                        toggle.classList.remove('loading');
+                        if (success) {
+                            childrenEl.dataset.loaded = 'true';
                             childrenEl.classList.remove('collapsed');
                             toggle.textContent = 'v';
                             toggle.classList.add('expanded');
                             icon.innerHTML = '&#128194;';
+                        } else {
+                            // 加载失败或空目录
+                            toggle.textContent = '';
+                            node.has_children = false;
                         }
                     } else {
-                        // 折叠
-                        childrenEl.classList.add('collapsed');
-                        toggle.textContent = '>';
-                        toggle.classList.remove('expanded');
-                        icon.innerHTML = '&#128193;';
+                        childrenEl.classList.remove('collapsed');
+                        toggle.textContent = 'v';
+                        toggle.classList.add('expanded');
+                        icon.innerHTML = '&#128194;';
                     }
-                });
+                } else {
+                    // 折叠
+                    childrenEl.classList.add('collapsed');
+                    toggle.textContent = '>';
+                    toggle.classList.remove('expanded');
+                    icon.innerHTML = '&#128193;';
+                }
+            });
 
-                nodeEl.appendChild(headerEl);
-                nodeEl.appendChild(childrenEl);
-            } else {
-                const icon = getFileIcon(node.name);
-                headerEl.innerHTML = `
-                    <span class="tree-node-toggle"></span>
-                    <span class="tree-node-icon">${icon}</span>
-                    <span class="tree-node-name">${escapeHtml(node.name)}</span>
-                `;
+            nodeEl.appendChild(headerEl);
+            nodeEl.appendChild(childrenEl);
+        } else {
+            const icon = getFileIcon(node.name);
+            headerEl.innerHTML = `
+                <span class="tree-node-toggle"></span>
+                <span class="tree-node-icon">${icon}</span>
+                <span class="tree-node-name">${escapeHtml(node.name)}</span>
+            `;
 
-                headerEl.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    selectFile(node.path);
-                });
+            headerEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectFile(node.path);
+            });
 
-                nodeEl.appendChild(headerEl);
-            }
+            nodeEl.appendChild(headerEl);
+        }
 
-            container.appendChild(nodeEl);
-        });
+        return nodeEl;
     }
 
     /**
@@ -343,7 +437,7 @@ window.JadxModule = (function() {
      * @param {string} subPath - 子目录路径
      * @param {HTMLElement} container - 容器元素
      * @param {number} level - 层级
-     * @returns {Promise<boolean>} 是否成功
+     * @returns {Promise<boolean>} 是否成功（有子项返回true，空目录或失败返回false）
      */
     async function loadSubdirectory(subPath, container, level) {
         const apkListData = getApkListData();
@@ -359,7 +453,12 @@ window.JadxModule = (function() {
                 return false;
             }
 
-            renderFileTree(result.children, container, level);
+            // 如果子目录为空，返回 false
+            if (!result.children || result.children.length === 0) {
+                return false;
+            }
+
+            await renderFileTree(result.children, container, level);
             return true;
         } catch (error) {
             console.error('加载子目录失败:', error);
@@ -1081,10 +1180,12 @@ window.JadxModule = (function() {
             searchCount.textContent = '';
             searchPreviewContent.innerHTML = '<div class="search-placeholder">选择左侧结果预览</div>';
             searchPreviewPath.textContent = '';
+            searchResults = [];
             return;
         }
 
         searchResultsList.innerHTML = '<div class="search-placeholder">搜索中...</div>';
+        searchCount.textContent = '搜索中...';
 
         searchTimeout = setTimeout(async () => {
             await performSearch(query);
@@ -1098,85 +1199,180 @@ window.JadxModule = (function() {
     async function performSearch(query) {
         const apkListData = getApkListData();
         const selectedApkIndex = getSelectedApkIndex();
+
+        if (selectedApkIndex < 0) {
+            toast.show({ text: '请先选择一个APK', color: 'warning', duration: 2000 });
+            return;
+        }
+
         const apk = apkListData[selectedApkIndex];
+
+        if (!apk.isDecompiled) {
+            searchResultsList.innerHTML = '<div class="search-placeholder">APK尚未反编译，无法搜索</div>';
+            searchCount.textContent = '';
+            toast.show({ text: 'APK尚未反编译完成', color: 'warning', duration: 2000 });
+            return;
+        }
+
         const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
 
+        console.log('开始搜索:', query, 'apkDir:', apkDir, 'APK名称:', apk.name);
+
+        // 重置搜索状态
+        searchResults = [];
+        searchResultsList.innerHTML = '<div class="search-placeholder">搜索中...</div>';
+        searchCount.textContent = '搜索中...';
+
         try {
+            // 开始搜索
             const result = await invoke('search_jadx_files', { apkDir, query, maxResults: 500 });
+            console.log('后端返回结果:', result);
 
             if (!result.success) {
                 searchResultsList.innerHTML = `<div class="search-placeholder">${result.message}</div>`;
+                searchCount.textContent = '';
                 return;
             }
 
             searchResults = result.results;
-            searchCount.textContent = `${result.total} 个结果`;
 
             if (result.results.length === 0) {
                 searchResultsList.innerHTML = '<div class="search-placeholder">未找到匹配结果</div>';
+                searchCount.textContent = '0 个结果';
                 return;
             }
 
-            renderSearchResults(result.results, query);
+            // 分批渲染搜索结果（流式显示效果）
+            searchResultsList.innerHTML = '';
+            searchCount.textContent = `加载中... 0/${result.total}`;
+
+            await renderSearchResultsInBatches(result.results, query, result.total);
         } catch (error) {
+            console.error('搜索失败:', error);
             searchResultsList.innerHTML = `<div class="search-placeholder">搜索失败: ${error}</div>`;
+            searchCount.textContent = '';
         }
     }
 
     /**
-     * 渲染搜索结果
+     * 分批渲染搜索结果
      * @param {Array} results - 搜索结果数组
      * @param {string} query - 搜索查询
+     * @param {number} total - 总结果数
      */
-    function renderSearchResults(results, query) {
-        searchResultsList.innerHTML = '';
-        selectedSearchIndex = -1;
+    async function renderSearchResultsInBatches(results, query, total) {
+        const BATCH_SIZE = 50; // 每批渲染50条（增加批次大小）
+        const BATCH_DELAY = 5; // 批次间隔5毫秒（减少延迟）
 
-        results.forEach((result, index) => {
-            const item = document.createElement('div');
-            item.className = 'search-result-item';
-            item.dataset.index = index;
+        for (let i = 0; i < results.length; i += BATCH_SIZE) {
+            const batch = results.slice(i, i + BATCH_SIZE);
 
-            // 高亮匹配内容
-            const beforeMatch = escapeHtml(result.line_content.substring(0, result.match_start));
-            const match = escapeHtml(result.line_content.substring(result.match_start, result.match_end));
-            const afterMatch = escapeHtml(result.line_content.substring(result.match_end));
+            // 使用 DocumentFragment 优化DOM操作
+            const fragment = document.createDocumentFragment();
 
-            item.innerHTML = `
-                <div class="search-result-file">${escapeHtml(result.file_path)}</div>
-                <div class="search-result-line">行 ${result.line_number}</div>
-                <div class="search-result-content">${beforeMatch}<span class="highlight">${match}</span>${afterMatch}</div>
-            `;
-
-            // 单击选中并预览
-            item.addEventListener('click', () => {
-                selectSearchResult(index, query);
+            // 渲染当前批次
+            batch.forEach((res, idx) => {
+                const item = createSearchResultElement(res, i + idx, query);
+                fragment.appendChild(item);
             });
 
-            // 双击跳转到文件
-            item.addEventListener('dblclick', async () => {
-                searchOverlay.classList.add('hidden');
-                currentFilePath = result.file_path;
-                jadxCurrentPath.textContent = result.file_path;
-                expandTreeToPath(result.file_path);
+            searchResultsList.appendChild(fragment);
 
-                const apkListData = getApkListData();
-                const selectedApkIndex = getSelectedApkIndex();
-                const apk = apkListData[selectedApkIndex];
-                const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
+            // 更新计数
+            const currentCount = Math.min(i + BATCH_SIZE, results.length);
+            searchCount.textContent = `${currentCount}/${total} 个结果`;
 
-                try {
-                    const fileResult = await invoke('read_jadx_file', { apkDir, filePath: result.file_path });
-                    if (fileResult.success) {
-                        renderCode(fileResult.content, fileResult.extension, result.line_number, query);
-                    }
-                } catch (error) {
-                    console.error('读取文件失败:', error);
-                }
-            });
+            // 让出主线程，避免阻塞UI（最后一批不需要等待）
+            if (i + BATCH_SIZE < results.length) {
+                await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
+            }
+        }
 
-            searchResultsList.appendChild(item);
+        // 最终更新计数
+        searchCount.textContent = `${total} 个结果`;
+    }
+
+    /**
+     * 创建搜索结果元素（从appendSearchResult拆分出来）
+     * @param {Object} result - 搜索结果
+     * @param {number} index - 索引
+     * @param {string} query - 搜索查询
+     * @returns {HTMLElement}
+     */
+    function createSearchResultElement(result, index, query) {
+        const item = document.createElement('div');
+        item.className = 'search-result-item';
+        item.dataset.index = index;
+
+        // 高亮匹配内容
+        const beforeMatch = escapeHtml(result.line_content.substring(0, result.match_start));
+        const match = escapeHtml(result.line_content.substring(result.match_start, result.match_end));
+        const afterMatch = escapeHtml(result.line_content.substring(result.match_end));
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'search-result-content';
+        contentDiv.innerHTML = `${beforeMatch}<span class="highlight">${match}</span>${afterMatch}`;
+
+        item.innerHTML = `
+            <div class="search-result-file">${escapeHtml(result.file_path)}</div>
+            <div class="search-result-line">行 ${result.line_number}</div>
+        `;
+        item.appendChild(contentDiv);
+
+        // 添加到列表后，滚动使高亮的关键词可见
+        setTimeout(() => {
+            const highlight = contentDiv.querySelector('.highlight');
+            if (highlight) {
+                // 计算高亮元素相对于容器的位置
+                const containerWidth = contentDiv.clientWidth;
+                const highlightLeft = highlight.offsetLeft;
+                const highlightWidth = highlight.offsetWidth;
+
+                // 将高亮元素滚动到容器中间
+                const scrollLeft = highlightLeft - (containerWidth / 2) + (highlightWidth / 2);
+                contentDiv.scrollLeft = Math.max(0, scrollLeft);
+            }
+        }, 0);
+
+        // 单击选中并预览
+        item.addEventListener('click', () => {
+            selectSearchResult(index, query);
         });
+
+        // 双击跳转到文件
+        item.addEventListener('dblclick', async () => {
+            searchOverlay.classList.add('hidden');
+            currentFilePath = result.file_path;
+            jadxCurrentPath.textContent = result.file_path;
+            expandTreeToPath(result.file_path);
+
+            const apkListData = getApkListData();
+            const selectedApkIndex = getSelectedApkIndex();
+            const apk = apkListData[selectedApkIndex];
+            const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
+
+            try {
+                const fileResult = await invoke('read_jadx_file', { apkDir, filePath: result.file_path });
+                if (fileResult.success) {
+                    renderCode(fileResult.content, fileResult.extension, result.line_number, query);
+                }
+            } catch (error) {
+                console.error('读取文件失败:', error);
+            }
+        });
+
+        return item;
+    }
+
+    /**
+     * 添加单个搜索结果到列表（保留用于兼容性）
+     * @param {Object} result - 搜索结果
+     * @param {number} index - 索引
+     * @param {string} query - 搜索查询
+     */
+    function appendSearchResult(result, index, query) {
+        const item = createSearchResultElement(result, index, query);
+        searchResultsList.appendChild(item);
     }
 
     /**
@@ -1208,7 +1404,7 @@ window.JadxModule = (function() {
             const fileResult = await invoke('read_jadx_file', { apkDir, filePath: result.file_path });
 
             if (fileResult.success) {
-                renderPreviewCode(fileResult.content, result.line_number, query);
+                renderPreviewCode(fileResult.content, result.line_number, query, fileResult.extension);
             } else {
                 searchPreviewContent.innerHTML = `<div class="search-placeholder">${fileResult.message}</div>`;
             }
@@ -1218,13 +1414,29 @@ window.JadxModule = (function() {
     }
 
     /**
-     * 渲染预览代码
+     * 渲染预览代码（带语法高亮）
      * @param {string} content - 代码内容
      * @param {number} highlightLine - 高亮行号
      * @param {string} searchQuery - 搜索查询
+     * @param {string} extension - 文件扩展名
      */
-    function renderPreviewCode(content, highlightLine, searchQuery) {
-        const lines = content.split('\n');
+    function renderPreviewCode(content, highlightLine, searchQuery, extension = '') {
+        // 使用 highlight.js 进行语法高亮
+        const language = getHighlightLanguage(extension);
+        let highlightedCode;
+
+        try {
+            if (hljs.getLanguage(language)) {
+                highlightedCode = hljs.highlight(content, { language: language }).value;
+            } else {
+                highlightedCode = hljs.highlightAuto(content).value;
+            }
+        } catch (e) {
+            // 高亮失败，使用纯文本
+            highlightedCode = escapeHtml(content);
+        }
+
+        const lines = highlightedCode.split('\n');
         const table = document.createElement('table');
         table.className = 'code-table';
 
@@ -1243,12 +1455,12 @@ window.JadxModule = (function() {
             const tdContent = document.createElement('td');
             tdContent.className = 'line-content';
 
-            // 高亮搜索内容
-            if (searchQuery && line.toLowerCase().includes(searchQuery.toLowerCase())) {
+            // 在已经语法高亮的HTML中高亮搜索内容
+            if (searchQuery) {
                 const regex = new RegExp(`(${escapeRegExp(searchQuery)})`, 'gi');
-                tdContent.innerHTML = escapeHtml(line).replace(regex, '<span class="highlight">$1</span>');
+                tdContent.innerHTML = line.replace(regex, '<span class="search-highlight">$1</span>');
             } else {
-                tdContent.textContent = line;
+                tdContent.innerHTML = line;
             }
 
             tr.appendChild(tdNum);
@@ -1374,7 +1586,6 @@ window.JadxModule = (function() {
         renderCode: renderCode,
         expandTreeToPath: expandTreeToPath,
         performSearch: performSearch,
-        renderSearchResults: renderSearchResults,
         selectSearchResult: selectSearchResult,
         renderPreviewCode: renderPreviewCode,
         getCurrentFilePath: getCurrentFilePath

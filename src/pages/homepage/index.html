@@ -23,6 +23,7 @@
             <div class="button-group">
                 <span class="top-btn">设置</span>
                 <span class="top-btn">关于</span>
+                <span class="top-btn">感谢</span>
             </div>
 
             <!-- 右侧内容框 -->
@@ -154,7 +155,7 @@
                 </div>
                 <div class="about-item">
                     <span class="about-label">版本：</span>
-                    <span class="about-value">1.0.0</span>
+                    <span class="about-value">1.1.0</span>
                 </div>
                 <div class="about-item">
                     <span class="about-label">作者：</span>
@@ -167,6 +168,25 @@
             </div>
             <div class="modal-buttons">
                 <button id="about-close-btn" class="btn-confirm">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 感谢对话框蒙层 -->
+    <div id="thanks-modal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <h2>感谢</h2>
+            <div class="about-info">
+                <div class="about-item">
+                    <span class="about-value" style="white-space: nowrap;">感谢 <a class="about-link" href="https://github.com/moyuwa" target="_blank">moyuwa</a> 维护的第三方SDK、APK加固与硬编码扫描特征库</span>
+                </div>
+                <div class="about-item">
+                    <div class="about-label">仓库：</div>
+                    <a class="about-value about-link" href="https://github.com/moyuwa/ApkCheckPack" target="_blank">ApkCheckPack</a>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button id="thanks-close-btn" class="btn-confirm">关闭</button>
             </div>
         </div>
     </div>
@@ -272,19 +292,29 @@
                     <!-- 敏感信息 设置 -->
                     <div id="settings-sensitive" class="settings-section">
                         <div class="settings-section-title">敏感信息扫描 设置</div>
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-label">扫描JADX反编译文件</div>
+                                <div class="settings-item-desc">是否扫描JADX反编译后的Java/Kotlin源码（关闭后仅扫描APK硬编码）</div>
+                            </div>
+                            <label class="settings-switch">
+                                <input type="checkbox" id="setting-scan-jadx" checked>
+                                <span class="settings-slider"></span>
+                            </label>
+                        </div>
                         <div class="settings-item settings-item-vertical">
                             <div class="settings-item-info">
                                 <div class="settings-item-label">URL 白名单</div>
                                 <div class="settings-item-desc">包含以下字符串的URL将被忽略，每行一个</div>
                             </div>
-                            <textarea id="setting-url-whitelist" class="settings-textarea" placeholder="schemas.android.com&#10;example.com&#10;localhost"></textarea>
+                            <textarea id="setting-url-whitelist" class="settings-textarea" placeholder="schemas.android.com&#10;xmlns.jcp.org&#10;xmlpull.org&#10;w3.org&#10;apache.org&#10;localhost"></textarea>
                         </div>
                         <div class="settings-item settings-item-vertical">
                             <div class="settings-item-info">
                                 <div class="settings-item-label">IP 白名单</div>
-                                <div class="settings-item-desc">以下IP地址将被忽略，每行一个</div>
+                                <div class="settings-item-desc">以下IP地址将被忽略，每行一个（支持完整匹配）</div>
                             </div>
-                            <textarea id="setting-ip-whitelist" class="settings-textarea" placeholder="127.0.0.1&#10;0.0.0.0"></textarea>
+                            <textarea id="setting-ip-whitelist" class="settings-textarea" placeholder="127.0.0.1&#10;0.0.0.0&#10;255.255.255.255&#10;1.0.0.0&#10;2.0.0.0"></textarea>
                         </div>
                     </div>
                 </div>

@@ -3,6 +3,8 @@ use std::env;
 use std::process::Command;
 use std::io::Read;
 use serde_json::json;
+use std::sync::{Arc, Mutex};
+use rayon::prelude::*;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
@@ -25,50 +27,47 @@ pub struct SearchResult {
     pub match_end: usize,
 }
 
-/// 获取单层目录内容（懒加载）
+/// 获取单层目录内容（懒加载，优化版）
 pub fn get_directory_contents(dir_path: &std::path::Path, base_path: &std::path::Path) -> Result<Vec<FileTreeNode>, String> {
-    let mut nodes = Vec::new();
+    let mut dirs = Vec::new();
+    let mut files = Vec::new();
 
     let entries = fs::read_dir(dir_path)
         .map_err(|e| format!("读取目录失败: {}", e))?;
 
-    let mut entries: Vec<_> = entries
-        .filter_map(|e| e.ok())
-        .collect();
-
-    entries.sort_by(|a, b| {
-        let a_is_dir = a.path().is_dir();
-        let b_is_dir = b.path().is_dir();
-        match (a_is_dir, b_is_dir) {
-            (true, false) => std::cmp::Ordering::Less,
-            (false, true) => std::cmp::Ordering::Greater,
-            _ => a.file_name().cmp(&b.file_name()),
-        }
-    });
-
-    for entry in entries {
-        let path = entry.path();
+    for entry in entries.filter_map(|e| e.ok()) {
         let name = entry.file_name().to_string_lossy().to_string();
+
+        // 使用 file_type() 而不是 path.is_dir()，避免额外的元数据查询
+        let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
+
+        let path = entry.path();
         let relative_path = path.strip_prefix(base_path)
             .map(|p| p.to_string_lossy().to_string().replace("\\", "/"))
             .unwrap_or_default();
 
-        let is_dir = path.is_dir();
-        let has_children = if is_dir {
-            fs::read_dir(&path).map(|mut d| d.next().is_some()).unwrap_or(false)
-        } else {
-            false
-        };
-
-        nodes.push(FileTreeNode {
+        let node = FileTreeNode {
             name,
             path: relative_path,
             is_dir,
-            has_children,
-        });
+            // 优化：假设所有文件夹都有子项，避免额外的 read_dir 调用
+            // 前端展开时如果为空会显示空状态
+            has_children: is_dir,
+        };
+
+        if is_dir {
+            dirs.push(node);
+        } else {
+            files.push(node);
+        }
     }
 
-    Ok(nodes)
+    // 分别排序后合并（文件夹优先）
+    dirs.sort_by(|a, b| a.name.cmp(&b.name));
+    files.sort_by(|a, b| a.name.cmp(&b.name));
+
+    dirs.extend(files);
+    Ok(dirs)
 }
 
 /// 获取jadx反编译后的文件树（根目录）
@@ -222,72 +221,121 @@ pub async fn read_jadx_file(apk_dir: String, file_path: String, page: Option<usi
     }
 }
 
-/// 递归搜索目录
-pub fn search_in_directory(
-    dir_path: &std::path::Path,
-    base_path: &std::path::Path,
-    query: &str,
-    query_lower: &str,
-    results: &mut Vec<SearchResult>,
-    max_results: usize,
-) {
-    if results.len() >= max_results {
-        return;
-    }
+/// 收集所有文件路径（用于并行搜索）
+fn collect_text_files(dir_path: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut files = Vec::new();
 
-    let entries = match fs::read_dir(dir_path) {
-        Ok(e) => e,
-        Err(_) => return,
-    };
+    fn walk_dir(path: &std::path::Path, files: &mut Vec<std::path::PathBuf>) {
+        if let Ok(entries) = fs::read_dir(path) {
+            for entry in entries.filter_map(|e| e.ok()) {
+                let path = entry.path();
+                if path.is_dir() {
+                    walk_dir(&path, files);
+                } else {
+                    let ext = path.extension()
+                        .and_then(|e| e.to_str())
+                        .unwrap_or("");
 
-    for entry in entries.filter_map(|e| e.ok()) {
-        if results.len() >= max_results {
-            break;
-        }
-
-        let path = entry.path();
-
-        if path.is_dir() {
-            search_in_directory(&path, base_path, query, query_lower, results, max_results);
-        } else {
-            let ext = path.extension()
-                .and_then(|e| e.to_str())
-                .unwrap_or("");
-
-            let text_extensions = ["java", "kt", "xml", "json", "txt", "smali", "properties", "gradle", "pro", "cfg", "yml", "yaml", "md", "html", "css", "js"];
-            if !text_extensions.contains(&ext) {
-                continue;
-            }
-
-            if let Ok(content) = fs::read_to_string(&path) {
-                let relative_path = path.strip_prefix(base_path)
-                    .map(|p| p.to_string_lossy().to_string().replace("\\", "/"))
-                    .unwrap_or_default();
-
-                for (line_num, line) in content.lines().enumerate() {
-                    if results.len() >= max_results {
-                        break;
-                    }
-
-                    let line_lower = line.to_lowercase();
-                    if let Some(pos) = line_lower.find(query_lower) {
-                        results.push(SearchResult {
-                            file_path: relative_path.clone(),
-                            line_number: line_num + 1,
-                            line_content: line.to_string(),
-                            match_start: pos,
-                            match_end: pos + query.len(),
-                        });
+                    let text_extensions = ["java", "kt", "xml", "json", "txt", "smali", "properties", "gradle", "pro", "cfg", "yml", "yaml", "md", "html", "css", "js"];
+                    if text_extensions.contains(&ext) {
+                        files.push(path);
                     }
                 }
             }
         }
     }
+
+    walk_dir(dir_path, &mut files);
+    files
 }
 
-/// 搜索jadx目录下的文件内容
+/// 在单个文件中搜索（带上下文展示）
+fn search_in_file(
+    file_path: &std::path::Path,
+    base_path: &std::path::Path,
+    query: &str,
+    query_lower: &str,
+    max_per_file: usize,
+) -> Vec<SearchResult> {
+    let mut results = Vec::new();
+
+    if let Ok(content) = fs::read_to_string(file_path) {
+        let relative_path = file_path.strip_prefix(base_path)
+            .map(|p| p.to_string_lossy().to_string().replace("\\", "/"))
+            .unwrap_or_default();
+
+        let lines: Vec<&str> = content.lines().collect();
+
+        for (line_num, line) in lines.iter().enumerate() {
+            if results.len() >= max_per_file {
+                break;
+            }
+
+            let line_lower = line.to_lowercase();
+            if let Some(pos) = line_lower.find(query_lower) {
+                // 提取上下文：关键词前后各取一定字符
+                const CONTEXT_CHARS: usize = 60; // 左右各取60个字符
+
+                // 使用字符索引而不是字节索引
+                let chars: Vec<char> = line.chars().collect();
+                let total_chars = chars.len();
+
+                // 计算匹配位置（字符索引）
+                let match_char_start = line[..pos].chars().count();
+                let match_char_end = match_char_start + query.chars().count();
+
+                // 计算显示范围（字符索引）
+                let display_char_start = if match_char_start > CONTEXT_CHARS {
+                    match_char_start.saturating_sub(CONTEXT_CHARS)
+                } else {
+                    0
+                };
+
+                let display_char_end = std::cmp::min(match_char_end + CONTEXT_CHARS, total_chars);
+
+                // 提取显示内容
+                let display_content = if display_char_start > 0 || display_char_end < total_chars {
+                    let mut content = String::new();
+                    if display_char_start > 0 {
+                        content.push_str("...");
+                    }
+                    content.push_str(&chars[display_char_start..display_char_end].iter().collect::<String>());
+                    if display_char_end < total_chars {
+                        content.push_str("...");
+                    }
+                    content
+                } else {
+                    line.to_string()
+                };
+
+                // 重新计算在显示内容中的匹配位置（字节索引）
+                let adjusted_match_start = if display_char_start > 0 {
+                    3 + chars[display_char_start..match_char_start].iter().collect::<String>().len()
+                } else {
+                    line[..pos].len()
+                };
+
+                results.push(SearchResult {
+                    file_path: relative_path.clone(),
+                    line_number: line_num + 1,
+                    line_content: display_content,
+                    match_start: adjusted_match_start,
+                    match_end: adjusted_match_start + query.len(),
+                });
+            }
+        }
+    }
+
+    results
+}
+
+/// 搜索jadx目录下的文件内容（优化版 - 提前停止）
 #[tauri::command]
-pub async fn search_jadx_files(apk_dir: String, query: String, max_results: Option<usize>) -> Result<serde_json::Value, String> {
+pub async fn search_jadx_files(
+    apk_dir: String,
+    query: String,
+    max_results: Option<usize>,
+) -> Result<serde_json::Value, String> {
     let current_dir = env::current_dir().map_err(|e| e.to_string())?;
     let jadx_path = current_dir.join(&apk_dir).join("jadx");
 
@@ -301,17 +349,63 @@ pub async fn search_jadx_files(apk_dir: String, query: String, max_results: Opti
     if query.is_empty() {
         return Ok(json!({
             "success": true,
-            "results": []
+            "results": [],
+            "total": 0
         }));
     }
 
     let max_results = max_results.unwrap_or(500);
+    let max_per_file = 10; // 每个文件最多返回10条结果
     let query_lower = query.to_lowercase();
 
+    // 在后台线程中执行搜索
     let results = tokio::task::spawn_blocking(move || {
-        let mut results: Vec<SearchResult> = Vec::new();
-        search_in_directory(&jadx_path, &jadx_path, &query, &query_lower, &mut results, max_results);
-        results
+        // 收集所有文件
+        let files = collect_text_files(&jadx_path);
+
+        // 使用 Arc<Mutex> 来跟踪结果数量，支持提前停止
+        let results = Arc::new(Mutex::new(Vec::new()));
+        let should_stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+        // 使用rayon并行搜索所有文件
+        files.par_iter().for_each({
+            let results = Arc::clone(&results);
+            let should_stop = Arc::clone(&should_stop);
+            let query = query.clone();
+            let query_lower = query_lower.clone();
+            let jadx_path = jadx_path.clone();
+
+            move |file_path| {
+                // 检查是否应该停止
+                if should_stop.load(std::sync::atomic::Ordering::Relaxed) {
+                    return;
+                }
+
+                // 搜索文件
+                let file_results = search_in_file(
+                    file_path,
+                    &jadx_path,
+                    &query,
+                    &query_lower,
+                    max_per_file
+                );
+
+                if !file_results.is_empty() {
+                    let mut r = results.lock().unwrap();
+                    for result in file_results {
+                        if r.len() >= max_results {
+                            // 达到最大结果数，设置停止标志
+                            should_stop.store(true, std::sync::atomic::Ordering::Relaxed);
+                            break;
+                        }
+                        r.push(result);
+                    }
+                }
+            }
+        });
+
+        let final_results = results.lock().unwrap().clone();
+        final_results
     }).await.map_err(|e| e.to_string())?;
 
     Ok(json!({
@@ -323,7 +417,7 @@ pub async fn search_jadx_files(apk_dir: String, query: String, max_results: Opti
 
 /// 反编译APK文件（异步）
 #[tauri::command]
-pub async fn decompile_apk(apk_path: String, output_path: String) -> Result<String, String> {
+pub async fn decompile_apk(apk_path: String, output_path: String, app: tauri::AppHandle) -> Result<String, String> {
     let current_dir = env::current_dir()
         .map_err(|e| e.to_string())?;
 
@@ -384,6 +478,31 @@ pub async fn decompile_apk(apk_path: String, output_path: String) -> Result<Stri
         eprintln!("APK反编译完成");
         Ok("success".to_string())
     }).await.map_err(|e| e.to_string())?;
+
+    // 反编译成功后，自动在后台启动敏感信息扫描
+    if result.is_ok() {
+        // 从 output_path 提取 apk_dir
+        // output_path 格式: "case/{caseNumber}/apks/{timestamp}/jadx"
+        // 需要提取到 "case/{caseNumber}/apks/{timestamp}"
+        let apk_dir = if let Some(jadx_index) = output_path.rfind("\\jadx") {
+            output_path[..jadx_index].to_string()
+        } else if let Some(jadx_index) = output_path.rfind("/jadx") {
+            output_path[..jadx_index].to_string()
+        } else {
+            output_path.clone()
+        };
+
+        eprintln!("[自动扫描] 反编译完成，启动敏感信息后台扫描: {}", apk_dir);
+
+        // 在后台异步启动扫描，不阻塞反编译完成信号
+        tokio::spawn(async move {
+            use crate::sensitive::scan_sensitive_info_streaming;
+            match scan_sensitive_info_streaming(apk_dir.clone(), app).await {
+                Ok(_) => eprintln!("[自动扫描] 敏感信息扫描完成: {}", apk_dir),
+                Err(e) => eprintln!("[自动扫描] 敏感信息扫描失败: {} - {}", apk_dir, e),
+            }
+        });
+    }
 
     result
 }

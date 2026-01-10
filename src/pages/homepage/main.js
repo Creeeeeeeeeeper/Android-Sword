@@ -87,11 +87,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const caseModal = document.getElementById('case-modal');
     const editModal = document.getElementById('edit-modal');
     const aboutModal = document.getElementById('about-modal');
+    const thanksModal = document.getElementById('thanks-modal');
     const cancelBtn = document.getElementById('cancel-btn');
     const confirmBtn = document.getElementById('confirm-btn');
     const editCancelBtn = document.getElementById('edit-cancel-btn');
     const editConfirmBtn = document.getElementById('edit-confirm-btn');
     const aboutCloseBtn = document.getElementById('about-close-btn');
+    const thanksCloseBtn = document.getElementById('thanks-close-btn');
 
     const caseNameInput = document.getElementById('case-name');
     const caseNumberInput = document.getElementById('case-number');
@@ -666,6 +668,28 @@ document.addEventListener('DOMContentLoaded', function() {
         aboutModal.classList.remove('show');
     });
 
+    // 感谢按钮事件
+    const topBtns = document.querySelectorAll('.top-btn');
+    topBtns.forEach(btn => {
+        if (btn.textContent.trim() === '感谢') {
+            btn.addEventListener('click', function() {
+                thanksModal.classList.add('show');
+            });
+        }
+    });
+
+    // 感谢模态框关闭按钮
+    thanksCloseBtn.addEventListener('click', function() {
+        thanksModal.classList.remove('show');
+    });
+
+    // 点击蒙层关闭感谢模态框
+    thanksModal.addEventListener('click', function(e) {
+        if (e.target === thanksModal) {
+            thanksModal.classList.remove('show');
+        }
+    });
+
     // ============ 设置模态框功能 ============
     const settingsModal = document.getElementById('settings-modal');
     const settingsCloseBtn = document.getElementById('settings-close-btn');
@@ -691,6 +715,7 @@ document.addEventListener('DOMContentLoaded', function() {
             hexPageSize: 64  // 默认64KB
         },
         sensitive: {
+            scanJadx: true,  // 默认扫描JADX反编译文件
             urlWhitelist: [],
             ipWhitelist: []
         }
@@ -786,6 +811,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // 敏感信息 设置
         const sensitive = currentSettings.sensitive || {};
+
+        const scanJadxCheckbox = document.getElementById('setting-scan-jadx');
+        if (scanJadxCheckbox) {
+            scanJadxCheckbox.checked = sensitive.scanJadx ?? true;
+        }
 
         const urlWhitelistTextarea = document.getElementById('setting-url-whitelist');
         if (urlWhitelistTextarea) {
@@ -893,6 +923,23 @@ document.addEventListener('DOMContentLoaded', function() {
             const value = this.value ? parseInt(this.value, 10) : null;
             currentSettings.source.hexPageSize = value;
             await saveSettings();
+        });
+    }
+
+    // 敏感信息设置变更 - 扫描JADX开关
+    const scanJadxCheckbox = document.getElementById('setting-scan-jadx');
+    if (scanJadxCheckbox) {
+        scanJadxCheckbox.addEventListener('change', async function() {
+            if (!currentSettings.sensitive) {
+                currentSettings.sensitive = {};
+            }
+            currentSettings.sensitive.scanJadx = this.checked;
+            await saveSettings();
+            window.toast.show({
+                text: this.checked ? '已启用JADX反编译扫描' : '已禁用JADX反编译扫描',
+                color: 'success',
+                duration: 2000
+            });
         });
     }
 
