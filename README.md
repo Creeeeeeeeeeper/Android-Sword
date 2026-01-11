@@ -31,7 +31,7 @@ https://github.com/user-attachments/assets/924670bc-db51-48db-86c4-8b651792d01a
 
 
 
-***更新说明：未来三个月除了修复现有Bug（请提issue），不会新增更多功能或模块***
+***更新说明：未来六个月除了修复现有Bug（请提issue），不会新增更多功能或模块***
 
 
 
