@@ -31,6 +31,10 @@ https://github.com/user-attachments/assets/924670bc-db51-48db-86c4-8b651792d01a
 
 
 
+***更新说明：未来三个月除了修复现有Bug（请提issue），不会新增更多功能或模块***
+
+
+
 **新增：AI源码分析**<sub>需要自己配置api_key</sub>
 
 目前支持：Claude（电脑上须安装Claude Code CLI），Kimi，Deepseek，OpenAI，智谱AI。
