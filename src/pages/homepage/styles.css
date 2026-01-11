@@ -1026,3 +1026,225 @@ html body {
 .settings-textarea::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
 }
+/* ========== AI 设置样式 ========== */
+.settings-select {
+    padding: 6px 10px;
+    background: #3c3c3c;
+    border: 1px solid #5a5a5a;
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+    min-width: 150px;
+}
+
+.settings-select:hover {
+    border-color: #6a6a6a;
+}
+
+.settings-select:focus {
+    border-color: rgba(100, 150, 255, 0.6);
+}
+
+.settings-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.settings-status .status-indicator {
+    font-size: 14px;
+}
+
+.settings-status .status-text {
+    color: #cccccc;
+}
+
+.settings-status.installed .status-indicator {
+    color: #4CAF50;
+}
+
+.settings-status.not-installed .status-indicator {
+    color: #f44336;
+}
+
+.settings-status.checking .status-indicator {
+    animation: spin 1s linear infinite;
+}
+
+.settings-group {
+    margin-top: 20px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.settings-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.settings-group-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.settings-item-vertical {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.settings-item-vertical .settings-item-info {
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+.settings-input {
+    width: 100%;
+    padding: 8px 12px;
+    background: #3c3c3c;
+    border: 1px solid #5a5a5a;
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 12px;
+    outline: none;
+}
+
+.settings-input:hover {
+    border-color: #6a6a6a;
+}
+
+.settings-input:focus {
+    border-color: rgba(100, 150, 255, 0.6);
+}
+
+.settings-input::placeholder {
+    color: #666666;
+}
+
+.settings-input[type="password"] {
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+}
+
+/* ========== AI 配置选项卡样式 ========== */
+.ai-config-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 20px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+}
+
+/* 隐藏选项卡滚动条 */
+.ai-config-tabs::-webkit-scrollbar {
+    height: 3px;
+}
+
+.ai-config-tabs::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ai-config-tabs::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
+.ai-config-tabs::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.ai-config-tab {
+    padding: 8px 16px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    background: transparent;
+    border: none;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.ai-config-tab:hover {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.ai-config-tab.active {
+    color: #ffffff;
+    background: rgba(100, 150, 255, 0.15);
+    border-bottom-color: rgba(100, 150, 255, 0.8);
+}
+
+.ai-config-panel {
+    display: none;
+}
+
+.ai-config-panel.active {
+    display: block;
+}
+
+.settings-info-box {
+    margin-top: 20px;
+    padding: 14px 16px;
+    background: rgba(100, 150, 255, 0.08);
+    border: 1px solid rgba(100, 150, 255, 0.2);
+    border-radius: 6px;
+}
+
+.info-box-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #82b1ff;
+    margin-bottom: 8px;
+}
+
+.info-box-content {
+    font-size: 12px;
+    color: #b0b0c0;
+    line-height: 1.6;
+}
+
+.info-box-content a {
+    color: #82b1ff;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.info-box-content a:hover {
+    color: #a0c5ff;
+    text-decoration: underline;
+}
+
+.required {
+    color: #f44336;
+    margin-left: 2px;
+}
+
+/* AI 配置面板中输入框的宽度限制 */
+.ai-config-panel .settings-input {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.ai-config-panel .settings-item-vertical .settings-input {
+    width: calc(100% - 24px);
+}

@@ -997,3 +997,392 @@ document.addEventListener('DOMContentLoaded', function() {
     loadCases();
 });
 
+
+// ========== AI 设置相关函数 ==========
+
+// 检测 Claude Code 是否安装
+async function checkClaudeCodeInstalled() {
+    const statusDiv = document.getElementById('claude-status');
+    if (!statusDiv) return;
+
+    // 显示检测中状态
+    statusDiv.className = 'settings-status checking';
+    statusDiv.innerHTML = '<span class="status-indicator">⏳</span><span class="status-text">检测中...</span>';
+
+    try {
+        const isInstalled = await invoke('check_claude_code_installed');
+        
+        if (isInstalled) {
+            statusDiv.className = 'settings-status installed';
+            statusDiv.innerHTML = '<span class="status-indicator">✓</span><span class="status-text">已安装</span>';
+        } else {
+            statusDiv.className = 'settings-status not-installed';
+            statusDiv.innerHTML = '<span class="status-indicator">✗</span><span class="status-text">未安装</span>';
+        }
+    } catch (error) {
+        console.error('检测 Claude Code 失败:', error);
+        statusDiv.className = 'settings-status not-installed';
+        statusDiv.innerHTML = '<span class="status-indicator">✗</span><span class="status-text">检测失败</span>';
+    }
+}
+
+// 加载 AI 配置
+async function loadAIConfig() {
+    try {
+        const config = await invoke('get_ai_config');
+        console.log('已加载 AI 配置:', config);
+
+        // 设置默认提供商
+        const defaultProviderSelect = document.getElementById('setting-default-provider');
+        if (defaultProviderSelect) {
+            defaultProviderSelect.value = config.default_provider || 'claude_code';
+        }
+
+        // Claude Code 配置
+        const claudeConfig = config.providers?.claude_code || {};
+
+        const claudeModel = document.getElementById('setting-claude-model');
+        if (claudeModel) {
+            claudeModel.value = claudeConfig.model || 'sonnet';
+        }
+
+        // Moonshot Kimi 配置
+        const moonshotConfig = config.providers?.moonshot_kimi || {};
+
+        const moonshotApiKey = document.getElementById('setting-moonshot-api-key');
+        if (moonshotApiKey) {
+            moonshotApiKey.value = moonshotConfig.api_key || '';
+        }
+
+        const moonshotModel = document.getElementById('setting-moonshot-model');
+        if (moonshotModel) {
+            moonshotModel.value = moonshotConfig.model || 'moonshot-v1-8k';
+        }
+
+        const moonshotApiUrl = document.getElementById('setting-moonshot-api-url');
+        if (moonshotApiUrl) {
+            moonshotApiUrl.value = moonshotConfig.api_url || 'https://api.moonshot.cn/v1/chat/completions';
+        }
+
+        // DeepSeek 配置
+        const deepseekConfig = config.providers?.deepseek || {};
+
+        const deepseekApiKey = document.getElementById('setting-deepseek-api-key');
+        if (deepseekApiKey) {
+            deepseekApiKey.value = deepseekConfig.api_key || '';
+        }
+
+        const deepseekModel = document.getElementById('setting-deepseek-model');
+        if (deepseekModel) {
+            deepseekModel.value = deepseekConfig.model || 'deepseek-chat';
+        }
+
+        const deepseekApiUrl = document.getElementById('setting-deepseek-api-url');
+        if (deepseekApiUrl) {
+            deepseekApiUrl.value = deepseekConfig.api_url || 'https://api.deepseek.com/v1/chat/completions';
+        }
+
+        // OpenAI 配置
+        const openaiConfig = config.providers?.openai || {};
+
+        const openaiApiKey = document.getElementById('setting-openai-api-key');
+        if (openaiApiKey) {
+            openaiApiKey.value = openaiConfig.api_key || '';
+        }
+
+        const openaiModel = document.getElementById('setting-openai-model');
+        if (openaiModel) {
+            openaiModel.value = openaiConfig.model || 'gpt-4';
+        }
+
+        const openaiApiUrl = document.getElementById('setting-openai-api-url');
+        if (openaiApiUrl) {
+            openaiApiUrl.value = openaiConfig.api_url || 'https://api.openai.com/v1/chat/completions';
+        }
+
+        // 智谱AI 配置
+        const zhipuConfig = config.providers?.zhipu || {};
+
+        const zhipuApiKey = document.getElementById('setting-zhipu-api-key');
+        if (zhipuApiKey) {
+            zhipuApiKey.value = zhipuConfig.api_key || '';
+        }
+
+        const zhipuModel = document.getElementById('setting-zhipu-model');
+        if (zhipuModel) {
+            zhipuModel.value = zhipuConfig.model || 'glm-4';
+        }
+
+        const zhipuApiUrl = document.getElementById('setting-zhipu-api-url');
+        if (zhipuApiUrl) {
+            zhipuApiUrl.value = zhipuConfig.api_url || 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+        }
+
+    } catch (error) {
+        console.error('加载 AI 配置失败:', error);
+    }
+}
+
+// 保存 AI 配置
+async function saveAIConfig() {
+    try {
+        // 获取当前配置
+        const currentConfig = await invoke('get_ai_config');
+
+        // 更新配置
+        const defaultProvider = document.getElementById('setting-default-provider')?.value || 'claude_code';
+        currentConfig.default_provider = defaultProvider;
+
+        // 更新 Claude Code 配置
+        if (!currentConfig.providers) {
+            currentConfig.providers = {};
+        }
+        if (!currentConfig.providers.claude_code) {
+            currentConfig.providers.claude_code = {
+                name: 'Claude Code',
+                enabled: true,
+                api_url: '',
+                api_key: '',
+                model: 'sonnet',
+                description: '本地安装的 Claude Code CLI'
+            };
+        }
+
+        const claudeModel = document.getElementById('setting-claude-model');
+        if (claudeModel) {
+            currentConfig.providers.claude_code.model = claudeModel.value;
+        }
+
+        // 更新 Moonshot Kimi 配置
+        if (!currentConfig.providers.moonshot_kimi) {
+            currentConfig.providers.moonshot_kimi = {
+                name: 'Moonshot Kimi',
+                enabled: false,
+                api_url: '',
+                api_key: '',
+                model: 'moonshot-v1-8k',
+                description: '月之暗面 Kimi API'
+            };
+        }
+
+        const moonshotApiKey = document.getElementById('setting-moonshot-api-key');
+        if (moonshotApiKey) {
+            currentConfig.providers.moonshot_kimi.api_key = moonshotApiKey.value;
+            currentConfig.providers.moonshot_kimi.enabled = moonshotApiKey.value.trim() !== '';
+        }
+
+        const moonshotModel = document.getElementById('setting-moonshot-model');
+        if (moonshotModel) {
+            currentConfig.providers.moonshot_kimi.model = moonshotModel.value;
+        }
+
+        const moonshotApiUrl = document.getElementById('setting-moonshot-api-url');
+        if (moonshotApiUrl) {
+            currentConfig.providers.moonshot_kimi.api_url = moonshotApiUrl.value;
+        }
+
+        // 更新 DeepSeek 配置
+        if (!currentConfig.providers.deepseek) {
+            currentConfig.providers.deepseek = {
+                name: 'DeepSeek',
+                enabled: false,
+                api_url: '',
+                api_key: '',
+                model: 'deepseek-chat',
+                description: 'DeepSeek API'
+            };
+        }
+
+        const deepseekApiKey = document.getElementById('setting-deepseek-api-key');
+        if (deepseekApiKey) {
+            currentConfig.providers.deepseek.api_key = deepseekApiKey.value;
+            currentConfig.providers.deepseek.enabled = deepseekApiKey.value.trim() !== '';
+        }
+
+        const deepseekModel = document.getElementById('setting-deepseek-model');
+        if (deepseekModel) {
+            currentConfig.providers.deepseek.model = deepseekModel.value;
+        }
+
+        const deepseekApiUrl = document.getElementById('setting-deepseek-api-url');
+        if (deepseekApiUrl) {
+            currentConfig.providers.deepseek.api_url = deepseekApiUrl.value;
+        }
+
+        // 更新 OpenAI 配置
+        if (!currentConfig.providers.openai) {
+            currentConfig.providers.openai = {
+                name: 'OpenAI',
+                enabled: false,
+                api_url: '',
+                api_key: '',
+                model: 'gpt-4',
+                description: 'OpenAI ChatGPT API'
+            };
+        }
+
+        const openaiApiKey = document.getElementById('setting-openai-api-key');
+        if (openaiApiKey) {
+            currentConfig.providers.openai.api_key = openaiApiKey.value;
+            currentConfig.providers.openai.enabled = openaiApiKey.value.trim() !== '';
+        }
+
+        const openaiModel = document.getElementById('setting-openai-model');
+        if (openaiModel) {
+            currentConfig.providers.openai.model = openaiModel.value;
+        }
+
+        const openaiApiUrl = document.getElementById('setting-openai-api-url');
+        if (openaiApiUrl) {
+            currentConfig.providers.openai.api_url = openaiApiUrl.value;
+        }
+
+        // 更新 智谱AI 配置
+        if (!currentConfig.providers.zhipu) {
+            currentConfig.providers.zhipu = {
+                name: '智谱AI',
+                enabled: false,
+                api_url: '',
+                api_key: '',
+                model: 'glm-4',
+                description: '智谱AI ChatGLM API'
+            };
+        }
+
+        const zhipuApiKey = document.getElementById('setting-zhipu-api-key');
+        if (zhipuApiKey) {
+            currentConfig.providers.zhipu.api_key = zhipuApiKey.value;
+            currentConfig.providers.zhipu.enabled = zhipuApiKey.value.trim() !== '';
+        }
+
+        const zhipuModel = document.getElementById('setting-zhipu-model');
+        if (zhipuModel) {
+            currentConfig.providers.zhipu.model = zhipuModel.value;
+        }
+
+        const zhipuApiUrl = document.getElementById('setting-zhipu-api-url');
+        if (zhipuApiUrl) {
+            currentConfig.providers.zhipu.api_url = zhipuApiUrl.value;
+        }
+
+        // 保存配置
+        await invoke('save_ai_config', { config: currentConfig });
+        console.log('AI 配置已保存');
+
+        window.toast.show({
+            text: 'AI 配置已保存',
+            color: 'success',
+            duration: 2000
+        });
+    } catch (error) {
+        console.error('保存 AI 配置失败:', error);
+        window.toast.show({
+            text: '保存 AI 配置失败: ' + error,
+            color: 'error',
+            duration: 3000
+        });
+    }
+}
+
+// 初始化 AI 设置
+function initAISettings() {
+    // AI 配置选项卡切换
+    const aiConfigTabs = document.querySelectorAll('.ai-config-tab');
+    const aiConfigPanels = document.querySelectorAll('.ai-config-panel');
+
+    aiConfigTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetTab = tab.getAttribute('data-ai-tab');
+
+            // 移除所有 active 类
+            aiConfigTabs.forEach(t => t.classList.remove('active'));
+            aiConfigPanels.forEach(p => p.classList.remove('active'));
+
+            // 添加 active 类到当前选中的
+            tab.classList.add('active');
+            const targetPanel = document.getElementById(`ai-panel-${targetTab}`);
+            if (targetPanel) {
+                targetPanel.classList.add('active');
+            }
+
+            // 如果切换到 Claude 配置，检测 Claude Code
+            if (targetTab === 'claude') {
+                checkClaudeCodeInstalled();
+            }
+        });
+    });
+
+    // 当打开设置对话框时检测 Claude Code
+    const settingsModal = document.getElementById('settings-modal');
+    if (settingsModal) {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class') {
+                    if (settingsModal.classList.contains('show')) {
+                        // 加载 AI 配置
+                        loadAIConfig();
+                    }
+                }
+            });
+        });
+        observer.observe(settingsModal, { attributes: true });
+    }
+
+    // 监听 AI 设置项的变化，自动保存
+    const aiSettingIds = [
+        'setting-default-provider',
+        'setting-claude-model',
+        'setting-moonshot-api-key',
+        'setting-moonshot-model',
+        'setting-moonshot-api-url',
+        'setting-deepseek-api-key',
+        'setting-deepseek-model',
+        'setting-deepseek-api-url',
+        'setting-openai-api-key',
+        'setting-openai-model',
+        'setting-openai-api-url',
+        'setting-zhipu-api-key',
+        'setting-zhipu-model',
+        'setting-zhipu-api-url'
+    ];
+
+    aiSettingIds.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            const eventType = element.tagName === 'SELECT' ? 'change' : 'blur';
+            element.addEventListener(eventType, () => {
+                saveAIConfig();
+            });
+        }
+    });
+}
+
+// 为 AI 配置选项卡添加鼠标滚轮横向滚动功能
+function enableTabsHorizontalScroll() {
+    const aiConfigTabs = document.querySelector('.ai-config-tabs');
+    if (aiConfigTabs) {
+        aiConfigTabs.addEventListener('wheel', (e) => {
+            // 阻止默认的垂直滚动
+            e.preventDefault();
+            // 平滑滚动到新位置
+            const scrollAmount = e.deltaY;
+            const targetScrollLeft = aiConfigTabs.scrollLeft + scrollAmount;
+
+            aiConfigTabs.scrollTo({
+                left: targetScrollLeft,
+                behavior: 'smooth'
+            });
+        }, { passive: false });
+    }
+}
+
+// 在页面加载完成后初始化 AI 设置
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        initAISettings();
+        enableTabsHorizontalScroll();
+    });
+} else {
+    initAISettings();
+    enableTabsHorizontalScroll();
+}

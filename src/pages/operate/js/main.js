@@ -224,6 +224,15 @@ document.addEventListener('DOMContentLoaded', function() {
         getSelectedApkIndex: () => selectedApkIndex
     });
 
+    // 初始化AI模块
+    window.AIModule.init({
+        caseNumber: caseNumber,
+        apkTimestamp: () => {
+            const selectedApk = apkListData[selectedApkIndex];
+            return selectedApk ? selectedApk.timestamp : '';
+        }
+    });
+
     // 初始化敏感信息模块
     window.SensitiveModule.init({
         invoke, caseNumber, toast,

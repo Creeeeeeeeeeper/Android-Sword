@@ -559,6 +559,23 @@ window.ApkModule = (function() {
      * @param {number} index - 索引
      */
     async function deleteApk(apk, index) {
+        const appName = apk.appName || apk.packageName || apk.originalName || '未知应用';
+
+        // 创建删除进度提示框
+        const deletingModal = document.createElement('div');
+        deletingModal.className = 'deleting-modal';
+        deletingModal.innerHTML = `
+            <div class="deleting-modal-content">
+                <div class="deleting-modal-icon">
+                    <div class="deleting-spinner"></div>
+                </div>
+                <div class="deleting-modal-title">正在删除</div>
+                <div class="deleting-modal-text">${appName}</div>
+                <div class="deleting-modal-desc">正在清理反编译文件，请稍候...</div>
+            </div>
+        `;
+        document.body.appendChild(deletingModal);
+
         try {
             const apkDir = `case/${caseNumber}/apks/${apk.timestamp}`;
 
@@ -567,8 +584,8 @@ window.ApkModule = (function() {
                 await window.SensitiveModule.cleanupListenersForApk(apk.timestamp);
             }
 
-            // 删除整个APK目录
-            await invoke('delete_dir', { dirname: apkDir });
+            // 使用异步删除命令
+            await invoke('delete_dir_async', { dirname: apkDir });
 
             toast.show({
                 text: '已删除APK分析',
@@ -594,6 +611,11 @@ window.ApkModule = (function() {
                 color: 'error',
                 duration: 3000
             });
+        } finally {
+            // 移除删除进度提示框
+            if (deletingModal && deletingModal.parentNode) {
+                deletingModal.remove();
+            }
         }
     }
 

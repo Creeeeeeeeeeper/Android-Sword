@@ -1,0 +1,45 @@
+{
+  "default_provider": "moonshot_kimi",
+  "providers": {
+    "moonshot_kimi": {
+      "name": "Moonshot Kimi",
+      "enabled": false,
+      "api_url": "https://api.moonshot.cn/v1/chat/completions",
+      "api_key": "",
+      "model": "moonshot-v1-8k",
+      "description": "月之暗面 Kimi API"
+    },
+    "openai": {
+      "name": "OpenAI",
+      "enabled": false,
+      "api_url": "https://api.openai.com/v1/chat/completions",
+      "api_key": "",
+      "model": "gpt-4",
+      "description": "OpenAI ChatGPT API"
+    },
+    "zhipu": {
+      "name": "智谱AI",
+      "enabled": false,
+      "api_url": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+      "api_key": "",
+      "model": "glm-4",
+      "description": "智谱AI ChatGLM API"
+    },
+    "deepseek": {
+      "name": "DeepSeek",
+      "enabled": false,
+      "api_url": "https://api.deepseek.com/v1/chat/completions",
+      "api_key": "",
+      "model": "deepseek-chat",
+      "description": "DeepSeek API"
+    },
+    "claude_code": {
+      "name": "Claude Code",
+      "enabled": true,
+      "api_url": "",
+      "api_key": "",
+      "model": "sonnet",
+      "description": "本地安装的 Claude Code CLI"
+    }
+  }
+}

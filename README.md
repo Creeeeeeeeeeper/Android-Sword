@@ -31,6 +31,26 @@ https://github.com/user-attachments/assets/924670bc-db51-48db-86c4-8b651792d01a
 
 
 
+**新增：AI源码分析**<sub>需要自己配置api_key</sub>
+
+目前支持：Claude（电脑上须安装Claude Code CLI），Kimi，Deepseek，OpenAI，智谱AI。
+
+Claude和Kimi已测试过，后面几个还没测试（因为没申请api_key）
+
+在`源码分析` -> `JADX源码查看 `中，点击一个代码文件之后，能看到右上角有一个`AI分析`按钮，直接点击后，可以使用`设置`界面配置好的默认AI工具直接分析，有AI分析记录的会在文件名边上显示一个[robot]的emoji。
+
+![image-20260111100952308](./README/image-20260111100952308.png)
+
+如果使用不同ai进行多次分析，则可以点击历史记录查看：
+
+![image-20260111101025135](./README/image-20260111101025135.png)
+
+右键`AI分析`按钮可以切换当前分析的AI工具、切换预设提示词等操作
+
+<img src="./README/image-20260111101118638.png" alt="image-20260111101118638" style="zoom:50%;" />
+
+管理提示词预设：`sources`目录下的源码分析默认使用`default_prompt`，`resources`目录中的默认使用`general_prompt`进行分析，还可以自行添加预设列表，添加预设时请注意让ai使用***markdown***格式回复，以便更好的渲染在前端。
+
 ### 各模块总览
 
 **总览：**

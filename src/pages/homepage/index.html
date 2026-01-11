@@ -155,7 +155,7 @@
                 </div>
                 <div class="about-item">
                     <span class="about-label">版本：</span>
-                    <span class="about-value">1.1.0</span>
+                    <span class="about-value">1.2.0</span>
                 </div>
                 <div class="about-item">
                     <span class="about-label">作者：</span>
@@ -205,6 +205,7 @@
                     <div class="settings-menu-item" data-section="scrcpy">Scrcpy</div>
                     <div class="settings-menu-item" data-section="source">源码分析</div>
                     <div class="settings-menu-item" data-section="sensitive">敏感信息</div>
+                    <div class="settings-menu-item" data-section="ai">AI 分析</div>
                 </div>
                 <!-- 右侧分项内容 -->
                 <div class="settings-content">
@@ -315,6 +316,226 @@
                                 <div class="settings-item-desc">以下IP地址将被忽略，每行一个（支持完整匹配）</div>
                             </div>
                             <textarea id="setting-ip-whitelist" class="settings-textarea" placeholder="127.0.0.1&#10;0.0.0.0&#10;255.255.255.255&#10;1.0.0.0&#10;2.0.0.0"></textarea>
+                        </div>
+                    </div>
+                    <!-- AI 分析 设置 -->
+                    <div id="settings-ai" class="settings-section">
+                        <div class="settings-section-title">AI 分析 设置</div>
+
+                        <!-- AI 配置选项卡 -->
+                        <div class="ai-config-tabs">
+                            <div class="ai-config-tab active" data-ai-tab="general">总配置</div>
+                            <div class="ai-config-tab" data-ai-tab="claude">Claude 配置</div>
+                            <div class="ai-config-tab" data-ai-tab="kimi">Kimi 配置</div>
+                            <div class="ai-config-tab" data-ai-tab="deepseek">DeepSeek 配置</div>
+                            <div class="ai-config-tab" data-ai-tab="openai">OpenAI 配置</div>
+                            <div class="ai-config-tab" data-ai-tab="zhipu">智谱AI 配置</div>
+                        </div>
+
+                        <!-- 总配置面板 -->
+                        <div class="ai-config-panel active" id="ai-panel-general">
+                            <div class="settings-item">
+                                <div class="settings-item-info">
+                                    <div class="settings-item-label">默认 AI 提供商</div>
+                                    <div class="settings-item-desc">选择默认使用的 AI 分析服务</div>
+                                </div>
+                                <select id="setting-default-provider" class="settings-select">
+                                    <option value="claude_code">Claude Code</option>
+                                    <option value="moonshot_kimi">Moonshot Kimi</option>
+                                    <option value="deepseek">DeepSeek</option>
+                                    <option value="openai">OpenAI</option>
+                                    <option value="zhipu">智谱AI</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Claude 配置面板 -->
+                        <div class="ai-config-panel" id="ai-panel-claude">
+                            <div class="settings-item">
+                                <div class="settings-item-info">
+                                    <div class="settings-item-label">安装状态</div>
+                                    <div class="settings-item-desc">本地 Claude Code CLI 安装状态</div>
+                                </div>
+                                <div class="settings-status" id="claude-status">
+                                    <span class="status-indicator">⏳</span>
+                                    <span class="status-text">检测中...</span>
+                                </div>
+                            </div>
+
+                            <div class="settings-item">
+                                <div class="settings-item-info">
+                                    <div class="settings-item-label">模型选择</div>
+                                    <div class="settings-item-desc">选择使用的 Claude 模型</div>
+                                </div>
+                                <select id="setting-claude-model" class="settings-select">
+                                    <option value="sonnet">Sonnet (推荐)</option>
+                                    <option value="opus">Opus</option>
+                                    <option value="haiku">Haiku</option>
+                                </select>
+                            </div>
+
+                            <div class="settings-info-box">
+                                <div class="info-box-title">💡 使用说明</div>
+                                <div class="info-box-content">
+                                    Claude Code 需要本地安装 CLI 工具。<br>
+                                    安装方法请访问: <a href="https://claude.ai/claude-code" target="_blank">https://claude.ai/claude-code</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Kimi 配置面板 -->
+                        <div class="ai-config-panel" id="ai-panel-kimi">
+                            <div class="settings-item settings-item-vertical">
+                                <div class="settings-item-info">
+                                    <div class="settings-item-label">API Key <span class="required">*</span></div>
+                                    <div class="settings-item-desc">在 Moonshot AI 平台获取您的 API Key</div>
+                                </div>
+                                <input type="password" id="setting-moonshot-api-key" class="settings-input" placeholder="请输入 Moonshot Kimi API Key">
+                            </div>
+
+                            <div class="settings-item">
+                                <div class="settings-item-info">
+                                    <div class="settings-item-label">模型选择</div>
+                                    <div class="settings-item-desc">不同模型支持的上下文长度不同</div>
+                                </div>
+                                <select id="setting-moonshot-model" class="settings-select">
+                                    <option value="moonshot-v1-8k">moonshot-v1-8k (8K 上下文)</option>
+                                    <option value="moonshot-v1-32k">moonshot-v1-32k (32K 上下文)</option>
+                                    <option value="moonshot-v1-128k">moonshot-v1-128k (128K 上下文)</option>
+                                </select>
+                            </div>
+
+                            <div class="settings-item settings-item-vertical">
+                                <div class="settings-item-info">
+                                    <div class="settings-item-label">API URL</div>
+                                    <div class="settings-item-desc">API 端点地址（通常无需修改）</div>
+                                </div>
+                                <input type="text" id="setting-moonshot-api-url" class="settings-input" placeholder="https://api.moonshot.cn/v1/chat/completions">
+                            </div>
+
+                            <div class="settings-info-box">
+                                <div class="info-box-title">💡 获取 API Key</div>
+                                <div class="info-box-content">
+                                    访问 Moonshot AI 开放平台注册并获取 API Key:<br>
+                                    <a href="https://platform.moonshot.cn" target="_blank">https://platform.moonshot.cn</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DeepSeek 配置面板 -->
+                        <div class="ai-config-panel" id="ai-panel-deepseek">
+                            <div class="settings-item settings-item-vertical">
+                                <div class="settings-item-info">
+                                    <div class="settings-item-label">API Key <span class="required">*</span></div>
+                                    <div class="settings-item-desc">在 DeepSeek 平台获取您的 API Key</div>
+                                </div>
+                                <input type="password" id="setting-deepseek-api-key" class="settings-input" placeholder="请输入 DeepSeek API Key">
+                            </div>
+
+                            <div class="settings-item">
+                                <div class="settings-item-info">
+                                    <div class="settings-item-label">模型选择</div>
+                                    <div class="settings-item-desc">选择使用的 DeepSeek 模型</div>
+                                </div>
+                                <select id="setting-deepseek-model" class="settings-select">
+                                    <option value="deepseek-chat">deepseek-chat (推荐)</option>
+                                    <option value="deepseek-coder">deepseek-coder</option>
+                                </select>
+                            </div>
+
+                            <div class="settings-item settings-item-vertical">
+                                <div class="settings-item-info">
+                                    <div class="settings-item-label">API URL</div>
+                                    <div class="settings-item-desc">API 端点地址（通常无需修改）</div>
+                                </div>
+                                <input type="text" id="setting-deepseek-api-url" class="settings-input" placeholder="https://api.deepseek.com/v1/chat/completions">
+                            </div>
+
+                            <div class="settings-info-box">
+                                <div class="info-box-title">💡 获取 API Key</div>
+                                <div class="info-box-content">
+                                    访问 DeepSeek 开放平台注册并获取 API Key:<br>
+                                    <a href="https://platform.deepseek.com" target="_blank">https://platform.deepseek.com</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- OpenAI 配置面板 -->
+                        <div class="ai-config-panel" id="ai-panel-openai">
+                            <div class="settings-item settings-item-vertical">
+                                <div class="settings-item-info">
+                                    <div class="settings-item-label">API Key <span class="required">*</span></div>
+                                    <div class="settings-item-desc">在 OpenAI 平台获取您的 API Key</div>
+                                </div>
+                                <input type="password" id="setting-openai-api-key" class="settings-input" placeholder="请输入 OpenAI API Key">
+                            </div>
+
+                            <div class="settings-item">
+                                <div class="settings-item-info">
+                                    <div class="settings-item-label">模型选择</div>
+                                    <div class="settings-item-desc">选择使用的 OpenAI 模型</div>
+                                </div>
+                                <select id="setting-openai-model" class="settings-select">
+                                    <option value="gpt-4">GPT-4 (推荐)</option>
+                                    <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                </select>
+                            </div>
+
+                            <div class="settings-item settings-item-vertical">
+                                <div class="settings-item-info">
+                                    <div class="settings-item-label">API URL</div>
+                                    <div class="settings-item-desc">API 端点地址（通常无需修改）</div>
+                                </div>
+                                <input type="text" id="setting-openai-api-url" class="settings-input" placeholder="https://api.openai.com/v1/chat/completions">
+                            </div>
+
+                            <div class="settings-info-box">
+                                <div class="info-box-title">💡 获取 API Key</div>
+                                <div class="info-box-content">
+                                    访问 OpenAI 开放平台注册并获取 API Key:<br>
+                                    <a href="https://platform.openai.com" target="_blank">https://platform.openai.com</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 智谱AI 配置面板 -->
+                        <div class="ai-config-panel" id="ai-panel-zhipu">
+                            <div class="settings-item settings-item-vertical">
+                                <div class="settings-item-info">
+                                    <div class="settings-item-label">API Key <span class="required">*</span></div>
+                                    <div class="settings-item-desc">在智谱AI开放平台获取您的 API Key</div>
+                                </div>
+                                <input type="password" id="setting-zhipu-api-key" class="settings-input" placeholder="请输入智谱AI API Key">
+                            </div>
+
+                            <div class="settings-item">
+                                <div class="settings-item-info">
+                                    <div class="settings-item-label">模型选择</div>
+                                    <div class="settings-item-desc">选择使用的智谱AI模型</div>
+                                </div>
+                                <select id="setting-zhipu-model" class="settings-select">
+                                    <option value="glm-4">GLM-4 (推荐)</option>
+                                    <option value="glm-4v">GLM-4V (视觉)</option>
+                                    <option value="glm-3-turbo">GLM-3 Turbo</option>
+                                </select>
+                            </div>
+
+                            <div class="settings-item settings-item-vertical">
+                                <div class="settings-item-info">
+                                    <div class="settings-item-label">API URL</div>
+                                    <div class="settings-item-desc">API 端点地址（通常无需修改）</div>
+                                </div>
+                                <input type="text" id="setting-zhipu-api-url" class="settings-input" placeholder="https://open.bigmodel.cn/api/paas/v4/chat/completions">
+                            </div>
+
+                            <div class="settings-info-box">
+                                <div class="info-box-title">💡 获取 API Key</div>
+                                <div class="info-box-content">
+                                    访问智谱AI开放平台注册并获取 API Key:<br>
+                                    <a href="https://open.bigmodel.cn" target="_blank">https://open.bigmodel.cn</a>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -10,6 +10,7 @@ mod sensitive;
 mod frida;
 mod scrcpy;
 mod capture;
+mod ai;
 
 // 重新导出模块中的公共项
 pub use state::AppState;
@@ -31,6 +32,7 @@ pub fn run() {
             file_ops::read_file,
             file_ops::delete_file,
             file_ops::delete_dir,
+            file_ops::delete_dir_async,
             file_ops::create_dir,
             file_ops::read_dirs,
             file_ops::save_excel_file,
@@ -95,6 +97,18 @@ pub fn run() {
             capture::get_capture_sessions,
             capture::get_capture_packets,
             capture::delete_capture_session,
+            // AI 分析
+            ai::get_ai_config,
+            ai::save_ai_config,
+            ai::get_default_prompt,
+            ai::get_prompt_for_file,
+            ai::list_prompt_presets,
+            ai::get_prompt_preset,
+            ai::save_prompt_preset,
+            ai::analyze_with_ai,
+            ai::get_ai_analysis_history,
+            ai::read_ai_analysis_cache,
+            ai::check_claude_code_installed,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

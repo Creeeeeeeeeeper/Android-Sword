@@ -384,6 +384,7 @@
                 <div class="overlay-title">JADX源码查看</div>
                 <div class="overlay-path" id="jadx-current-path"></div>
                 <div class="overlay-actions">
+                    <button id="jadx-ai-analysis-btn" class="overlay-btn ai-btn hidden" title="AI 智能分析">AI 分析</button>
                     <button id="jadx-search-btn" class="overlay-btn" title="搜索 (Ctrl+F)">🔍 搜索</button>
                     <button id="jadx-close-btn" class="overlay-close-btn" title="关闭">✕</button>
                 </div>
@@ -397,6 +398,39 @@
                 <div class="jadx-resizer" id="jadx-resizer"></div>
                 <div class="jadx-main" id="jadx-main">
                     <div class="jadx-placeholder">选择左侧文件查看源码</div>
+                </div>
+                <!-- AI 分析侧边栏 -->
+                <div class="ai-analysis-panel hidden" id="ai-analysis-panel">
+                    <!-- 左侧调整大小手柄 -->
+                    <div class="ai-panel-resizer" id="ai-panel-resizer"></div>
+                    <div class="ai-panel-header">
+                        <div class="ai-panel-title">
+                            <span>AI 智能分析</span>
+                        </div>
+                        <button class="ai-panel-close" id="ai-panel-close" title="关闭">✕</button>
+                    </div>
+                    <div class="ai-panel-content">
+                        <div class="ai-status hidden" id="ai-status">
+                            <div class="ai-status-icon">
+                                <div class="ai-spinner"></div>
+                            </div>
+                            <div class="ai-status-text">AI 分析中，请稍后...</div>
+                        </div>
+                        <div class="ai-result hidden" id="ai-result"></div>
+                        <div class="ai-history-panel hidden" id="ai-history-panel">
+                            <div class="ai-history-header">
+                                <span class="ai-history-title">历史记录</span>
+                                <button class="ai-history-back-btn" id="ai-history-back-btn">返回结果</button>
+                            </div>
+                            <div class="ai-history-list" id="ai-history-list">
+                                <!-- 历史记录项会动态添加到这里 -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ai-panel-footer">
+                        <button class="ai-reanalyze-btn" id="ai-reanalyze-btn">重新分析</button>
+                        <button class="ai-history-btn" id="ai-history-btn">历史记录</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -489,7 +523,62 @@
         </div>
     </div>
 
+    <!-- AI 右键菜单 -->
+    <div id="ai-context-menu" class="ai-context-menu hidden">
+        <div class="ai-menu-item" data-action="analyze">
+            <span>使用默认 AI 分析</span>
+        </div>
+        <div class="ai-menu-divider"></div>
+        <div class="ai-menu-section-title">选择 AI 提供商</div>
+        <div id="ai-providers-list"></div>
+        <div class="ai-menu-divider"></div>
+        <div class="ai-menu-section">
+            <div class="ai-menu-label">当前提示词</div>
+            <div class="ai-menu-value" id="current-prompt-name">default_prompt</div>
+        </div>
+        <div class="ai-menu-divider"></div>
+        <div class="ai-menu-item" data-action="manage-presets">
+            <span>管理提示词预设</span>
+        </div>
+    </div>
+
+    <!-- 管理提示词预设对话框 -->
+    <div id="manage-presets-modal" class="modal-overlay hidden">
+        <div class="modal-dialog modal-dialog-large">
+            <div class="modal-header">
+                <span class="modal-title">管理提示词预设</span>
+                <button class="modal-close-btn" id="manage-presets-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="presets-container">
+                    <div class="presets-sidebar">
+                        <div class="presets-list-header">
+                            <span>预设列表</span>
+                            <button class="preset-add-btn" id="preset-add-btn" title="新建预设">+</button>
+                        </div>
+                        <div class="presets-list" id="presets-list">
+                            <div class="presets-placeholder">加载中...</div>
+                        </div>
+                    </div>
+                    <div class="presets-editor">
+                        <div class="preset-editor-header">
+                            <input type="text" id="preset-name-input" class="preset-name-input" placeholder="预设名称" autocomplete="off" readonly>
+                        </div>
+                        <textarea id="preset-content-editor" class="prompt-textarea" placeholder="选择左侧预设或创建新预设" readonly></textarea>
+                        <div class="preset-editor-footer" id="preset-editor-footer">
+                            <!-- 按钮会根据预设类型动态显示 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Marked.js - Markdown 渲染库 -->
+    <script src="marked.min.js"></script>
+
     <!-- 模块化JS文件 -->
+    <script src="js/ai.js"></script>
     <script src="js/apk.js"></script>
     <script src="js/device.js"></script>
     <script src="js/overview.js"></script>

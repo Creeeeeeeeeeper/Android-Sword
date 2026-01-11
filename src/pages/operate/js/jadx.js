@@ -46,6 +46,7 @@ window.JadxModule = (function() {
     // 状态变量
     let jadxFileTree = null;
     let currentFilePath = null;
+    let currentFileContent = null; // 保存当前文件的原始内容
     let searchTimeout = null;
     let searchResults = [];
     let selectedSearchIndex = -1;
@@ -415,11 +416,28 @@ window.JadxModule = (function() {
             nodeEl.appendChild(childrenEl);
         } else {
             const icon = getFileIcon(node.name);
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'tree-node-name';
+            nameSpan.textContent = node.name;
+
             headerEl.innerHTML = `
                 <span class="tree-node-toggle"></span>
                 <span class="tree-node-icon">${icon}</span>
-                <span class="tree-node-name">${escapeHtml(node.name)}</span>
             `;
+            headerEl.appendChild(nameSpan);
+
+            // 异步检查是否有AI分析历史
+            if (window.AIModule && window.AIModule.hasAIHistory) {
+                window.AIModule.hasAIHistory(node.path).then(hasHistory => {
+                    if (hasHistory) {
+                        const aiIcon = document.createElement('span');
+                        aiIcon.className = 'tree-node-ai-icon';
+                        aiIcon.textContent = '🤖';
+                        aiIcon.title = '已使用AI分析';
+                        nameSpan.appendChild(aiIcon);
+                    }
+                });
+            }
 
             headerEl.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -534,6 +552,9 @@ window.JadxModule = (function() {
 
         // 媒体文件且为预览模式
         if (isMedia && currentMediaViewMode === 'preview') {
+            // 隐藏 AI 分析按钮（媒体预览模式）
+            hideAIButton();
+
             if (isImage) {
                 renderImageView(apkDir, filePath, ext);
             } else if (isAudio) {
@@ -565,15 +586,43 @@ window.JadxModule = (function() {
             if (result.is_binary || isMedia) {
                 // 二进制文件或媒体文件的二进制模式，使用Hex查看器
                 currentBinaryData = result;
+                currentFileContent = null; // 二进制文件不保存内容
                 currentEncoding = 'ascii';
                 renderHexView(result, isMedia);
+
+                // 隐藏 AI 分析按钮
+                hideAIButton();
             } else {
                 // 文本文件，正常渲染
                 currentBinaryData = null;
+                currentFileContent = result.content; // 保存原始文本内容
                 renderCode(result.content, result.extension);
+
+                // 显示 AI 分析按钮
+                showAIButton();
             }
         } catch (error) {
             jadxMain.innerHTML = `<div class="jadx-placeholder">加载失败: ${error}</div>`;
+        }
+    }
+
+    /**
+     * 显示 AI 分析按钮
+     */
+    function showAIButton() {
+        const aiBtn = document.getElementById('jadx-ai-analysis-btn');
+        if (aiBtn) {
+            aiBtn.classList.remove('hidden');
+        }
+    }
+
+    /**
+     * 隐藏 AI 分析按钮
+     */
+    function hideAIButton() {
+        const aiBtn = document.getElementById('jadx-ai-analysis-btn');
+        if (aiBtn) {
+            aiBtn.classList.add('hidden');
         }
     }
 
@@ -1558,6 +1607,9 @@ window.JadxModule = (function() {
         if (jadxOverlay) {
             jadxOverlay.classList.add('hidden');
         }
+
+        // 隐藏 AI 分析按钮
+        hideAIButton();
     }
 
     /**
@@ -1566,6 +1618,14 @@ window.JadxModule = (function() {
      */
     function getCurrentFilePath() {
         return currentFilePath;
+    }
+
+    /**
+     * 获取当前文件内容
+     * @returns {string|null} 当前文件的原始文本内容
+     */
+    function getCurrentFileContent() {
+        return currentFileContent;
     }
 
     // 暴露公共API
@@ -1588,6 +1648,7 @@ window.JadxModule = (function() {
         performSearch: performSearch,
         selectSearchResult: selectSearchResult,
         renderPreviewCode: renderPreviewCode,
-        getCurrentFilePath: getCurrentFilePath
+        getCurrentFilePath: getCurrentFilePath,
+        getCurrentFileContent: getCurrentFileContent
     };
 })();

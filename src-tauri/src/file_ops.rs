@@ -75,6 +75,19 @@ pub fn delete_dir(dirname: &str) -> Result<String, String> {
     }
 }
 
+/// 异步删除文件夹（大文件夹时使用）
+#[tauri::command]
+pub async fn delete_dir_async(dirname: String) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || {
+        match fs::remove_dir_all(&dirname) {
+            Ok(_) => Ok("s".to_string()),
+            Err(e) => Err(e.to_string()),
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// 创建文件夹
 #[tauri::command]
 pub fn create_dir(dirname: &str) -> Result<String, String> {
