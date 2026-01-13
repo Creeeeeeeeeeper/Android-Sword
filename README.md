@@ -20,20 +20,21 @@
 <p align="center">
   <a href="./LICENSE">完整许可证文本</a>
 </p>
+<br>
+
+***当前版本bug请提Issue，有建议可发Discussion（但暑假前不会更新新内容）***
+
+<br>
+
+
 
 ### 演示视频：
 
 画质不高，将就着看(\*^▽^\*)
 
-
-
 https://github.com/user-attachments/assets/924670bc-db51-48db-86c4-8b651792d01a
 
-
-
-***更新说明：未来六个月除了修复现有Bug（请提issue），不会新增更多功能或模块***
-
-
+<br>
 
 **新增：AI源码分析**<sub>需要自己配置api_key</sub>
 
