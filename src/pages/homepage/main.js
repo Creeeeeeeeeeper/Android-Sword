@@ -1381,8 +1381,266 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initAISettings();
         enableTabsHorizontalScroll();
+        initUpdateSettings();
     });
 } else {
     initAISettings();
     enableTabsHorizontalScroll();
+    initUpdateSettings();
+}
+
+// ========== 更新检查相关函数 ==========
+
+// 存储更新信息
+let latestUpdateInfo = null;
+
+// 初始化更新设置
+function initUpdateSettings() {
+    // 获取当前版本并显示
+    loadCurrentVersion();
+
+    // 加载更新设置
+    loadUpdateSettings();
+
+    // 绑定检查更新按钮
+    const checkUpdateBtn = document.getElementById('check-update-btn');
+    if (checkUpdateBtn) {
+        checkUpdateBtn.addEventListener('click', handleManualUpdateCheck);
+    }
+
+    // 绑定更新模态框按钮
+    const updateLaterBtn = document.getElementById('update-later-btn');
+    const updateNowBtn = document.getElementById('update-now-btn');
+    const updateModal = document.getElementById('update-modal');
+
+    if (updateLaterBtn) {
+        updateLaterBtn.addEventListener('click', () => {
+            // 检查是否选择了"不再提示此版本"
+            const skipCheckbox = document.getElementById('update-skip-checkbox');
+            if (skipCheckbox && skipCheckbox.checked && latestUpdateInfo) {
+                // 保存跳过的版本
+                saveSkipVersion(latestUpdateInfo.version);
+            }
+            updateModal.classList.remove('show');
+        });
+    }
+
+    if (updateNowBtn) {
+        updateNowBtn.addEventListener('click', handleUpdateNow);
+    }
+
+    // 点击蒙层关闭模态框
+    if (updateModal) {
+        updateModal.addEventListener('click', (e) => {
+            if (e.target === updateModal) {
+                updateModal.classList.remove('show');
+            }
+        });
+    }
+
+    // 自动更新检查开关
+    const autoUpdateCheckbox = document.getElementById('setting-auto-update-check');
+    if (autoUpdateCheckbox) {
+        autoUpdateCheckbox.addEventListener('change', async function() {
+            await invoke('save_update_settings', {
+                autoCheck: this.checked,
+                skipVersion: null  // 不改变跳过版本设置
+            });
+        });
+    }
+
+    // 页面加载时检查更新（如果启用了自动检查）
+    checkForUpdatesOnStartup();
+}
+
+// 加载当前版本
+async function loadCurrentVersion() {
+    const versionDisplay = document.getElementById('current-version-display');
+    if (!versionDisplay) return;
+
+    try {
+        const version = await invoke('get_current_version');
+        versionDisplay.textContent = version;
+    } catch (error) {
+        console.error('获取当前版本失败:', error);
+        versionDisplay.textContent = '获取失败';
+    }
+}
+
+// 加载更新设置
+async function loadUpdateSettings() {
+    try {
+        const settings = await invoke('get_update_settings');
+        const autoUpdateCheckbox = document.getElementById('setting-auto-update-check');
+        if (autoUpdateCheckbox && settings) {
+            autoUpdateCheckbox.checked = settings.autoCheck ?? true;
+        }
+    } catch (error) {
+        console.error('加载更新设置失败:', error);
+    }
+}
+
+// 保存跳过版本
+async function saveSkipVersion(version) {
+    try {
+        const autoUpdateCheckbox = document.getElementById('setting-auto-update-check');
+        const autoCheck = autoUpdateCheckbox ? autoUpdateCheckbox.checked : true;
+        await invoke('save_update_settings', {
+            autoCheck: autoCheck,
+            skipVersion: version
+        });
+        console.log('已保存跳过版本:', version);
+    } catch (error) {
+        console.error('保存跳过版本失败:', error);
+    }
+}
+
+// 启动时检查更新
+async function checkForUpdatesOnStartup() {
+    try {
+        const settings = await invoke('get_update_settings');
+        if (!settings.autoCheck) {
+            console.log('自动检查更新已关闭');
+            return;
+        }
+
+        // 延迟2秒再检查，避免影响启动速度
+        setTimeout(async () => {
+            await checkForUpdates(false, settings.skipVersion);
+        }, 2000);
+    } catch (error) {
+        console.error('启动时检查更新失败:', error);
+    }
+}
+
+// 手动检查更新
+async function handleManualUpdateCheck() {
+    const checkUpdateBtn = document.getElementById('check-update-btn');
+    if (!checkUpdateBtn) return;
+
+    checkUpdateBtn.disabled = true;
+    checkUpdateBtn.textContent = '检查中...';
+
+    try {
+        // 手动检查时不跳过任何版本
+        await checkForUpdates(true, null);
+    } finally {
+        checkUpdateBtn.disabled = false;
+        checkUpdateBtn.textContent = '检查更新';
+    }
+}
+
+// 检查更新
+async function checkForUpdates(showNoUpdateToast = false, skipVersion = null) {
+    try {
+        const currentVersion = await invoke('get_current_version');
+        const latestRelease = await invoke('check_latest_version');
+
+        console.log('当前版本:', currentVersion);
+        console.log('最新版本:', latestRelease);
+
+        const hasNewVersion = await invoke('compare_versions', {
+            current: currentVersion,
+            latest: latestRelease.version
+        });
+
+        if (hasNewVersion) {
+            // 检查是否需要跳过此版本
+            if (skipVersion && skipVersion === latestRelease.version) {
+                console.log('已跳过版本:', skipVersion);
+                if (showNoUpdateToast) {
+                    // 手动检查时即使是跳过版本也要显示
+                    showUpdateModal(currentVersion, latestRelease);
+                }
+                return;
+            }
+
+            // 显示更新提示
+            showUpdateModal(currentVersion, latestRelease);
+        } else {
+            if (showNoUpdateToast) {
+                window.toast.show({
+                    text: '当前已是最新版本',
+                    color: 'success',
+                    duration: 3000
+                });
+            }
+        }
+    } catch (error) {
+        console.error('检查更新失败:', error);
+        if (showNoUpdateToast) {
+            window.toast.show({
+                text: '检查更新失败: ' + error,
+                color: 'error',
+                duration: 3000
+            });
+        }
+    }
+}
+
+// 显示更新模态框
+function showUpdateModal(currentVersion, latestRelease) {
+    latestUpdateInfo = latestRelease;
+
+    // 填充版本信息
+    document.getElementById('update-current-version').textContent = currentVersion;
+    document.getElementById('update-latest-version').textContent = latestRelease.version;
+
+    // 填充发布名称和说明
+    const releaseNameEl = document.getElementById('update-release-name');
+    const releaseNotesEl = document.getElementById('update-release-notes');
+
+    if (releaseNameEl) {
+        releaseNameEl.textContent = latestRelease.name || '';
+    }
+
+    if (releaseNotesEl) {
+        releaseNotesEl.textContent = latestRelease.body || '';
+    }
+
+    // 重置跳过复选框
+    const skipCheckbox = document.getElementById('update-skip-checkbox');
+    if (skipCheckbox) {
+        skipCheckbox.checked = false;
+    }
+
+    // 显示模态框
+    const updateModal = document.getElementById('update-modal');
+    if (updateModal) {
+        updateModal.classList.add('show');
+    }
+}
+
+// 立即更新
+async function handleUpdateNow() {
+    const updateNowBtn = document.getElementById('update-now-btn');
+    if (updateNowBtn) {
+        updateNowBtn.disabled = true;
+        updateNowBtn.textContent = '启动更新程序...';
+    }
+
+    try {
+        window.toast.show({
+            text: '正在启动更新程序...',
+            color: 'info',
+            duration: 3000
+        });
+
+        // 调用后端启动更新程序
+        await invoke('launch_updater');
+
+        // 如果成功，应用会自动关闭
+    } catch (error) {
+        console.error('启动更新程序失败:', error);
+        window.toast.show({
+            text: '启动更新程序失败: ' + error,
+            color: 'error',
+            duration: 5000
+        });
+
+        if (updateNowBtn) {
+            updateNowBtn.disabled = false;
+            updateNowBtn.textContent = '立即更新';
+        }
+    }
 }

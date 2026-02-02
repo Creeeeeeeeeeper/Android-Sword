@@ -206,6 +206,7 @@
                     <div class="settings-menu-item" data-section="source">源码分析</div>
                     <div class="settings-menu-item" data-section="sensitive">敏感信息</div>
                     <div class="settings-menu-item" data-section="ai">AI 分析</div>
+                    <div class="settings-menu-item" data-section="update">更新</div>
                 </div>
                 <!-- 右侧分项内容 -->
                 <div class="settings-content">
@@ -538,7 +539,64 @@
                             </div>
                         </div>
                     </div>
+                    <!-- 更新 设置 -->
+                    <div id="settings-update" class="settings-section">
+                        <div class="settings-section-title">更新 设置</div>
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-label">当前版本</div>
+                                <div class="settings-item-desc">当前安装的软件版本</div>
+                            </div>
+                            <div class="settings-value" id="current-version-display">检测中...</div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-label">自动检查更新</div>
+                                <div class="settings-item-desc">启动时自动检查是否有新版本</div>
+                            </div>
+                            <label class="settings-switch">
+                                <input type="checkbox" id="setting-auto-update-check" checked>
+                                <span class="settings-slider"></span>
+                            </label>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-info">
+                                <div class="settings-item-label">检查更新</div>
+                                <div class="settings-item-desc">立即检查是否有新版本可用</div>
+                            </div>
+                            <button id="check-update-btn" class="settings-action-btn">检查更新</button>
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 更新提示对话框蒙层 -->
+    <div id="update-modal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <h2>发现新版本</h2>
+            <div class="update-info">
+                <div class="update-version-row">
+                    <span class="update-label">当前版本：</span>
+                    <span class="update-value" id="update-current-version">-</span>
+                </div>
+                <div class="update-version-row">
+                    <span class="update-label">最新版本：</span>
+                    <span class="update-value update-new-version" id="update-latest-version">-</span>
+                </div>
+                <div class="update-release-name" id="update-release-name"></div>
+                <div class="update-release-notes" id="update-release-notes"></div>
+            </div>
+            <div class="update-skip-row">
+                <label class="update-skip-label">
+                    <input type="checkbox" id="update-skip-checkbox">
+                    <span>不再提示此版本</span>
+                </label>
+            </div>
+            <div class="modal-buttons">
+                <button id="update-later-btn" class="btn-cancel">稍后提醒</button>
+                <button id="update-now-btn" class="btn-confirm">立即更新</button>
             </div>
         </div>
     </div>

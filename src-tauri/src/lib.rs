@@ -11,6 +11,7 @@ mod frida;
 mod scrcpy;
 mod capture;
 mod ai;
+mod update;
 
 // 重新导出模块中的公共项
 pub use state::AppState;
@@ -111,6 +112,13 @@ pub fn run() {
             ai::get_ai_analysis_history,
             ai::read_ai_analysis_cache,
             ai::check_claude_code_installed,
+            // 更新检查
+            update::get_current_version,
+            update::check_latest_version,
+            update::compare_versions,
+            update::launch_updater,
+            update::get_update_settings,
+            update::save_update_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

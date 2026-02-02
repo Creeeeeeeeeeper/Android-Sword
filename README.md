@@ -15,18 +15,14 @@
     <img src="https://img.shields.io/github/forks/Creeeeeeeeeeper/Android-Sword?style=social" alt="GitHub forks">
   </a>
 </p>
-<p align="center">License: GNU General Public License v3.0</p>
-
 <p align="center">
-  <a href="./LICENSE">完整许可证文本</a>
+<a href="./LICENSE">License: GNU General Public License v3.0</a>
 </p>
 <br>
 
-***当前版本bug请提Issue，有建议可发Discussion（但暑假前不会更新新内容）***
+***当前版本bug请提Issue，有建议可发Discussion（<sub>~~但暑假前不会更新新内容~~</sub>   学习学累了会随缘更新一下）***
 
 <br>
-
-
 
 ### 演示视频：
 
@@ -36,7 +32,17 @@ https://github.com/user-attachments/assets/924670bc-db51-48db-86c4-8b651792d01a
 
 <br>
 
-**新增：AI源码分析**<sub>需要自己配置api_key</sub>
+### 更新内容：
+
+v1.3.0**新增：支持雷电模拟器连接，使用增量更新**
+
+使用雷电模拟器建议开启**"模拟器优化"**选项
+
+![image-20260202131043126](./README/image-20260202131043126.png)
+
+<img src="./README/image-20260202131143910.png" alt="image-20260202131143910" style="zoom:50%;" />
+
+v 1.2.0**新增：AI源码分析**<sub>需要自己配置api_key</sub>
 
 目前支持：Claude（电脑上须安装Claude Code CLI），Kimi，Deepseek，OpenAI，智谱AI。
 

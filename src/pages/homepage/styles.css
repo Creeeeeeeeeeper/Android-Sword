@@ -1248,3 +1248,144 @@ html body {
 .ai-config-panel .settings-item-vertical .settings-input {
     width: calc(100% - 24px);
 }
+
+/* ========== 更新设置样式 ========== */
+.settings-value {
+    font-size: 13px;
+    color: #82b1ff;
+    padding: 6px 12px;
+    background: rgba(100, 150, 255, 0.1);
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.settings-action-btn {
+    padding: 8px 20px;
+    background: #207EC4;
+    border: none;
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.settings-action-btn:hover {
+    background: #1D5E90;
+}
+
+.settings-action-btn:active {
+    opacity: 0.9;
+}
+
+.settings-action-btn:disabled {
+    background: #555555;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* ========== 更新提示对话框样式 ========== */
+.update-info {
+    margin: 20px 0;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+}
+
+.update-version-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.update-version-row:last-of-type {
+    margin-bottom: 0;
+}
+
+.update-label {
+    color: #cccccc;
+    font-size: 14px;
+    min-width: 90px;
+}
+
+.update-value {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.update-new-version {
+    color: #4CAF50;
+    font-weight: 600;
+}
+
+.update-release-name {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.update-release-name:empty {
+    display: none;
+}
+
+.update-release-notes {
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    font-size: 13px;
+    color: #cccccc;
+    line-height: 1.6;
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+.update-release-notes:empty {
+    display: none;
+}
+
+.update-release-notes::-webkit-scrollbar {
+    width: 6px;
+}
+
+.update-release-notes::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.update-release-notes::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.update-skip-row {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.update-skip-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #aaaaaa;
+    user-select: none;
+}
+
+.update-skip-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #207EC4;
+}
+
+.update-skip-label:hover {
+    color: #cccccc;
+}
