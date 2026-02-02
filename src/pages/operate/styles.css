@@ -6270,3 +6270,129 @@ html body {
     color: #82b1ff;
     margin-right: 5px;
 }
+
+
+/* 设备选择下拉框样式 */
+.device-selector-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: #2a2a2a;
+    border-bottom: 1px solid #3a3a3a;
+}
+
+.device-selector-label {
+    color: #ccc;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.device-selector {
+    flex: 1;
+    min-width: 120px;
+    max-width: 200px;
+    padding: 4px 8px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+}
+
+.device-selector:hover {
+    border-color: #4a90d9;
+}
+
+.device-selector:focus {
+    border-color: #4a90d9;
+    box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.2);
+}
+
+.device-selector:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.device-selector option {
+    background: #1a1a1a;
+    color: #fff;
+    padding: 4px 8px;
+}
+
+.refresh-devices-btn {
+    padding: 4px 10px !important;
+    font-size: 11px !important;
+    background: #3a3a3a !important;
+    border: 1px solid #4a4a4a !important;
+    color: #ccc !important;
+    border-radius: 4px !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.refresh-devices-btn:hover:not(:disabled) {
+    background: #4a4a4a !important;
+    border-color: #5a5a5a !important;
+    color: #fff !important;
+}
+
+.refresh-devices-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* 模拟器优化复选框 */
+.emulator-optimize-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    padding-left: 8px;
+    border-left: 1px solid #3a3a3a;
+}
+
+.emulator-optimize-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #ccc;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.emulator-optimize-label input[type="checkbox"] {
+    width: 13px;
+    height: 13px;
+    cursor: pointer;
+    accent-color: #4a90d9;
+}
+
+.emulator-optimize-info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid #666;
+    color: #999;
+    font-size: 11px;
+    font-style: normal;
+    cursor: help;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.emulator-optimize-info:hover {
+    border-color: #4a90d9;
+    color: #4a90d9;
+}
+
+.emulator-optimize-info[title] {
+    position: relative;
+}

@@ -79,6 +79,8 @@ pub fn run() {
             scrcpy::start_scrcpy,
             scrcpy::stop_scrcpy,
             scrcpy::is_scrcpy_ready,
+            scrcpy::list_scrcpy_devices,
+            scrcpy::scan_emulator_ports,
             // Frida脚本
             frida::check_frida_env,
             frida::init_frida_env,

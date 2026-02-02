@@ -20,6 +20,21 @@
         <div class="content-wrapper">
             <!-- 左侧模拟器 -->
             <div class="left-panel">
+                <!-- 设备选择下拉框 -->
+                <div class="device-selector-container">
+                    <label class="device-selector-label">设备:</label>
+                    <select id="device-selector" class="device-selector">
+                        <option value="-1">检测中...</option>
+                    </select>
+                    <button id="refresh-devices-btn" class="toolbar-btn refresh-devices-btn" title="刷新设备列表">刷新</button>
+                    <div class="emulator-optimize-wrapper">
+                        <label class="emulator-optimize-label">
+                            <input type="checkbox" id="emulator-optimize-checkbox">
+                            <span>模拟器优化</span>
+                        </label>
+                        <span class="emulator-optimize-info" id="emulator-optimize-info" title="此功能主要针对雷电模拟器进行优化，由于雷电模拟器使用压缩率较低的视频编码格式，其本身较卡顿，勾选此选项可以适当降低码率和分辨率以换取较流畅投屏">ⓘ</span>
+                    </div>
+                </div>
                 <!-- 模拟器工具栏 -->
                 <div class="device-toolbar">
                     <button id="reconnect-btn" class="toolbar-btn reconnect-btn-small" title="重新检测连接">重连</button>
