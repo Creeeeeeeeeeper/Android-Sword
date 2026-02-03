@@ -1,0 +1,145 @@
+/* 滚动条样式 */
+.frida-scripts-list::-webkit-scrollbar,
+.frida-output::-webkit-scrollbar {
+    width: 6px;
+}
+
+.frida-scripts-list::-webkit-scrollbar-track,
+.frida-output::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.frida-scripts-list::-webkit-scrollbar-thumb,
+.frida-output::-webkit-scrollbar-thumb {
+    background: #4a4d5a;
+    border-radius: 3px;
+}
+
+.frida-scripts-list::-webkit-scrollbar-thumb:hover,
+.frida-output::-webkit-scrollbar-thumb:hover {
+    background: #5a5d6a;
+}
+
+/* Frida脚本头部按钮组 */
+.frida-scripts-header-btns {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.frida-add-script-btn {
+    padding: 4px 10px;
+    font-size: 12px;
+    background: rgba(100, 150, 255, 0.2);
+    color: #82b1ff;
+    border: 1px solid rgba(100, 150, 255, 0.4);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.frida-add-script-btn:hover {
+    background: rgba(100, 150, 255, 0.3);
+    border-color: rgba(100, 150, 255, 0.6);
+}
+
+/* Modal对话框样式 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5000;
+}
+
+.modal-overlay.hidden {
+    display: none;
+}
+
+.modal-dialog {
+    background: #2d2d2d;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    min-width: 360px;
+    max-width: 90%;
+    overflow: hidden;
+}
+
+.modal-dialog-wide {
+    min-width: 450px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    background: #383b47;
+    border-bottom: 1px solid #4a4d5a;
+}
+
+.modal-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e0e0e0;
+}
+
+.modal-close-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 6px;
+    color: #b0b0b0;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.modal-close-btn:hover {
+    background: rgba(255, 100, 100, 0.3);
+    color: #fff;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-script-path {
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    color: #82b1ff;
+    background: rgba(100, 150, 255, 0.1);
+    padding: 10px 14px;
+    border-radius: 6px;
+    word-break: break-all;
+    margin-bottom: 16px;
+}
+
+.modal-question {
+    font-size: 14px;
+    color: #e0e0e0;
+    margin-bottom: 8px;
+}
+
+.modal-desc {
+    font-size: 12px;
+    color: #888;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 18px;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid #3d4050;
+}

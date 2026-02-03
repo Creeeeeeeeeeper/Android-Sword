@@ -1,0 +1,106 @@
+{
+    "scripts": [
+        {
+            "id": "bypass_root",
+            "filename": "bypass/bypass_root.js",
+            "name": "绕过ROOT检测",
+            "description": "绕过常见ROOT检测方法，包括su文件检测、Runtime.exec检测、Build.TAGS检测、包管理器检测等",
+            "category": "bypass",
+            "enabled": true
+        },
+        {
+            "id": "bypass_ssl_pinning",
+            "filename": "bypass/bypass_ssl_pinning.js",
+            "name": "SSL证书绕过",
+            "description": "JustTrustMe - 绕过大部分框架的SSL证书校验，支持OkHttp、HttpsURLConnection、TrustManager等",
+            "category": "bypass",
+            "enabled": true
+        },
+        {
+            "id": "bypass_emulator",
+            "filename": "bypass/bypass_emulator.js",
+            "name": "绕过模拟器检测",
+            "description": "伪装真实设备，绕过Build信息、传感器、电话服务、特征文件等检测",
+            "category": "bypass",
+            "enabled": true
+        },
+        {
+            "id": "bypass_vpn",
+            "filename": "bypass/bypass_vpn.js",
+            "name": "绕过VPN检测",
+            "description": "绕过应用的VPN/代理检测，隐藏网络接口信息",
+            "category": "bypass",
+            "enabled": true
+        },
+        {
+            "id": "bypass_debug",
+            "filename": "bypass/bypass_debug.js",
+            "name": "绕过调试检测",
+            "description": "绕过反调试检测，包括ptrace、TracerPid、isDebuggerConnected等",
+            "category": "bypass",
+            "enabled": true
+        },
+        {
+            "id": "force_proxy",
+            "filename": "traffic/force_proxy.js",
+            "name": "强制使用代理",
+            "description": "强制OkHttp等网络库使用系统代理，绕过NO_PROXY设置",
+            "category": "traffic",
+            "enabled": true
+        },
+        {
+            "id": "https_unpinning",
+            "filename": "traffic/https_unpinning.js",
+            "name": "HTTPS无视证书",
+            "description": "使所有HTTPS请求忽略证书验证错误，方便抓包分析",
+            "category": "traffic",
+            "enabled": true
+        },
+        {
+            "id": "intercept_exit",
+            "filename": "intercept/intercept_exit.js",
+            "name": "拦截应用退出",
+            "description": "拦截System.exit、Process.killProcess、finish等退出方法，防止应用自动退出",
+            "category": "intercept",
+            "enabled": true
+        },
+        {
+            "id": "intercept_dialog",
+            "filename": "intercept/intercept_dialog.js",
+            "name": "拦截应用弹窗",
+            "description": "监控并可选择性拦截AlertDialog、Toast、PopupWindow等弹窗",
+            "category": "intercept",
+            "enabled": true
+        },
+        {
+            "id": "intercept_privacy_screen",
+            "filename": "intercept/intercept_privacy_screen.js",
+            "name": "拦截隐私界面",
+            "description": "移除FLAG_SECURE标志，避免投屏时黑屏，允许截图录屏",
+            "category": "intercept",
+            "enabled": true
+        },
+        {
+            "id": "dex_dump",
+            "filename": "helper/dex_dump.js",
+            "name": "DEX脱壳",
+            "description": "通用DEX脱壳，支持360、腾讯乐固、爱加密、梆梆等主流加固",
+            "category": "helper",
+            "enabled": true
+        },
+        {
+            "id": "shell_hook",
+            "filename": "helper/shell_hook.js",
+            "name": "带壳Hook",
+            "description": "等待加壳应用脱壳完成后自动执行Hook，支持监听ClassLoader加载",
+            "category": "helper",
+            "enabled": true
+        }
+    ],
+    "categories": {
+        "bypass": "绕过检测",
+        "traffic": "流量控制",
+        "intercept": "行为拦截",
+        "helper": "应用辅助"
+    }
+}

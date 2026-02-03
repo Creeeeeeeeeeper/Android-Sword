@@ -1,0 +1,102 @@
+.search-result-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.search-result-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
+.search-result-content .highlight {
+    background: rgba(255, 200, 0, 0.4);
+    color: #ffffff;
+    padding: 1px 2px;
+    border-radius: 2px;
+}
+
+.search-resizer {
+    width: 4px;
+    background: transparent;
+    cursor: col-resize;
+    transition: background 0.2s;
+}
+
+.search-resizer:hover,
+.search-resizer.active {
+    background: rgba(100, 150, 255, 0.5);
+}
+
+.search-preview-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.search-preview-path {
+    padding: 8px 12px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #3d3d3d;
+    font-size: 12px;
+    color: #888888;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.search-preview-content {
+    flex: 1;
+    overflow: auto;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.search-preview-content::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.search-preview-content::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+.search-preview-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+}
+
+/* 语法高亮基础颜色 */
+.syntax-keyword {
+    color: #569cd6;
+}
+
+.syntax-string {
+    color: #ce9178;
+}
+
+.syntax-number {
+    color: #b5cea8;
+}
+
+.syntax-comment {
+    color: #6a9955;
+}
+
+.syntax-annotation {
+    color: #dcdcaa;
+}
+
+.syntax-class {
+    color: #4ec9b0;
+}
+
+.syntax-method {
+    color: #dcdcaa;
+}
+
+.syntax-operator {
+    color: #d4d4d4;
+}
+
+.syntax-bracket {
+    color: #ffd700;
+}

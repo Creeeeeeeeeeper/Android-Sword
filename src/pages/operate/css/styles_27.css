@@ -1,0 +1,142 @@
+.session-action-btn {
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 3px;
+    color: #cccccc;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.session-action-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.session-action-btn.delete {
+    color: #f44336;
+}
+
+.session-action-btn.delete:hover {
+    background: rgba(244, 67, 54, 0.2);
+}
+
+/* 分隔线 */
+.capture-resizer {
+    width: 4px;
+    background: transparent;
+    cursor: col-resize;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.capture-resizer:hover,
+.capture-resizer.active {
+    background: rgba(100, 150, 255, 0.5);
+}
+
+/* 右侧数据包查看器 */
+.capture-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #1e1e1e;
+}
+
+.capture-packets-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #3d3d3d;
+}
+
+.packets-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: #ffffff;
+}
+
+.packets-filter-input {
+    width: 250px;
+    padding: 6px 10px;
+    background: #3c3c3c;
+    border: 1px solid #5a5a5a;
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 12px;
+    outline: none;
+}
+
+.packets-filter-input:focus {
+    border-color: rgba(100, 150, 255, 0.6);
+}
+
+.packets-filter-input::placeholder {
+    color: #666666;
+}
+
+/* 数据包表格 */
+.capture-packets-table-wrapper {
+    flex: 1;
+    overflow: auto;
+    display: none;
+}
+
+/* 细黑色滚动条 */
+.capture-packets-table-wrapper::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.capture-packets-table-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.capture-packets-table-wrapper::-webkit-scrollbar-thumb {
+    background: #333333;
+    border-radius: 3px;
+}
+
+.capture-packets-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #444444;
+}
+
+.capture-packets-table-wrapper::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+.capture-packets-table-wrapper.visible {
+    display: block;
+}
+
+.capture-packets-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.capture-packets-table thead {
+    position: sticky;
+    top: 0;
+    background: #2d2d2d;
+    z-index: 1;
+}
+
+.capture-packets-table th {
+    padding: 8px 10px;
+    text-align: left;
+    color: #888888;
+    font-weight: 500;
+    border-bottom: 1px solid #3d3d3d;
+    white-space: nowrap;
+}
+
+.capture-packets-table td {
+    padding: 6px 10px;
+    color: #cccccc;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: middle;
+}

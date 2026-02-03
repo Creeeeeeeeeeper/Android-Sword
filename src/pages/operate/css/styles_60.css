@@ -1,0 +1,12 @@
+.hex-bytes {
+    color: #60a5fa;
+    width: 360px;
+    flex-shrink: 0;
+    letter-spacing: 1px;
+}
+
+.hex-ascii {
+    color: #4ade80;
+    padding-left: 15px;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}

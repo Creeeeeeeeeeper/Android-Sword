@@ -1,0 +1,121 @@
+.session-type-badge.r0capture {
+    background: rgba(139, 92, 246, 0.2) !important;
+    color: #a78bfa !important;
+}
+
+.session-type-badge.tcpdump {
+    background: rgba(34, 197, 94, 0.2) !important;
+    color: #4ade80 !important;
+}
+
+.session-type-badge.realtime {
+    background: rgba(59, 130, 246, 0.2) !important;
+    color: #60a5fa !important;
+}
+
+.capture-running-type {
+    background: #3b82f6 !important;
+}
+
+.capture-running-status {
+    color: #4ade80 !important;
+}
+
+.packet-detail-content {
+    background: #2a2d36 !important;
+    color: #ffffff !important;
+}
+
+.http-first-line {
+    color: #3b82f6 !important;
+}
+
+.http-header-name {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.http-header-value {
+    color: #ffffff !important;
+}
+
+/* ========== 代理抓包设置样式 ========== */
+.capture-proxy-settings {
+    background: #2e3140;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.capture-proxy-settings.hidden {
+    display: none;
+}
+
+.proxy-settings-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.proxy-setting-label {
+    color: #9ca3af;
+    font-size: 14px;
+    min-width: 80px;
+}
+
+.proxy-port-input {
+    background: #1f2128;
+    border: 1px solid #3f4354;
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: #e5e7eb;
+    width: 100px;
+    font-size: 14px;
+}
+
+.proxy-port-input:focus {
+    outline: none;
+    border-color: #60a5fa;
+}
+
+.proxy-local-ip {
+    color: #60a5fa;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+.proxy-copy-btn {
+    background: #3f4354;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 10px;
+    color: #e5e7eb;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.proxy-copy-btn:hover {
+    background: #4f5567;
+}
+
+.proxy-settings-tips {
+    background: #1f2128;
+    border-radius: 6px;
+    padding: 12px;
+    margin: 12px 0;
+}
+
+.proxy-tip {
+    color: #9ca3af;
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+.proxy-tip-highlight {
+    color: #fbbf24;
+    font-family: monospace;
+    background: #3f4354;
+    padding: 2px 6px;
+    border-radius: 3px;
+}

@@ -1,0 +1,107 @@
+.frida-server-label {
+    font-size: 12px;
+    color: #888;
+}
+
+.frida-server-value {
+    font-size: 12px;
+    color: #b0b0b0;
+    min-width: 50px;
+}
+
+.frida-server-value.running {
+    color: #4CAF50;
+}
+
+.frida-server-value.stopped {
+    color: #888;
+}
+
+.frida-server-value.loading {
+    color: #ffb74d;
+}
+
+.frida-server-btn {
+    padding: 3px 10px;
+    font-size: 11px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.frida-server-btn.start {
+    background: rgba(76, 175, 80, 0.25);
+    color: #4CAF50;
+    border: 1px solid rgba(76, 175, 80, 0.4);
+}
+
+.frida-server-btn.start:hover:not(:disabled) {
+    background: rgba(76, 175, 80, 0.35);
+}
+
+.frida-server-btn.stop {
+    background: rgba(244, 67, 54, 0.25);
+    color: #f44336;
+    border: 1px solid rgba(244, 67, 54, 0.4);
+}
+
+.frida-server-btn.stop:hover:not(:disabled) {
+    background: rgba(244, 67, 54, 0.35);
+}
+
+.frida-server-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.frida-label {
+    font-size: 12px;
+    color: #999;
+}
+
+.frida-target-select,
+.frida-app-select {
+    padding: 5px 10px;
+    font-size: 12px;
+    background: #3a3d48;
+    color: #e0e0e0;
+    border: 1px solid #4a4d5a;
+    border-radius: 4px;
+    cursor: pointer;
+    min-width: 100px;
+}
+
+.frida-target-select:focus,
+.frida-app-select:focus {
+    outline: none;
+    border-color: #5a7ab8;
+}
+
+.frida-device-apps {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.frida-refresh-apps-btn {
+    padding: 4px 8px;
+    font-size: 14px;
+    background: #4a4d5a;
+    color: #b0b0b0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.frida-refresh-apps-btn:hover {
+    background: #5a5d6a;
+    color: #fff;
+}
+
+.frida-options-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}

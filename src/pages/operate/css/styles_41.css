@@ -1,0 +1,144 @@
+/* 代码块内的横向滚动条 */
+.ai-result pre::-webkit-scrollbar {
+    height: 6px;
+}
+
+.ai-result pre::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.ai-result pre::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.4);
+    border-radius: 3px;
+}
+
+.ai-result pre::-webkit-scrollbar-thumb:hover {
+    background: rgba(102, 126, 234, 0.6);
+}
+
+/* ========== Markdown 表格样式 ========== */
+.ai-result table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.ai-result table thead {
+    background: rgba(102, 126, 234, 0.2);
+}
+
+.ai-result table th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #a5b4fc;
+    border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+}
+
+.ai-result table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e0e0e0;
+}
+
+.ai-result table tr:last-child td {
+    border-bottom: none;
+}
+
+.ai-result table tr:hover {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+/* 代码块支持横向滚动 */
+.ai-result pre {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.ai-result pre code {
+    display: block;
+    min-width: fit-content;
+}
+
+/* ========== AI 历史记录面板样式 ========== */
+.ai-history-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+}
+
+.ai-history-panel.hidden {
+    display: none;
+}
+
+.ai-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: rgba(102, 126, 234, 0.1);
+    border-bottom: 1px solid rgba(102, 126, 234, 0.3);
+}
+
+.ai-history-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.ai-history-back-btn {
+    padding: 6px 14px;
+    background: rgba(30, 58, 138, 0.3);
+    border: 1px solid rgba(30, 58, 138, 0.5);
+    border-radius: 6px;
+    color: #82b1ff;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ai-history-back-btn:hover {
+    background: rgba(30, 58, 138, 0.5);
+    border-color: rgba(30, 58, 138, 0.7);
+}
+
+.ai-history-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ai-history-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.ai-history-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.ai-history-list::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.5);
+    border-radius: 4px;
+}
+
+.ai-history-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(102, 126, 234, 0.7);
+}
+
+.ai-history-item {
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}

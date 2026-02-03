@@ -1,0 +1,155 @@
+.modal-textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 20px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+}
+
+.modal-btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.modal-btn-secondary:hover {
+    border-color: var(--text-primary);
+    color: var(--text-primary);
+}
+
+.modal-btn-primary {
+    background: var(--accent-color);
+    border: none;
+    color: white;
+}
+
+.modal-btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+/* 数据包详情标签页样式 */
+.packet-detail-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.packet-detail-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.packet-detail-tab:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.packet-detail-tab.active {
+    background: var(--accent-color);
+    color: white;
+}
+
+.packet-detail-content {
+    flex: 1;
+    overflow: auto;
+    padding: 12px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.packet-detail-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+/* HTTP详情样式 */
+.http-first-line {
+    color: var(--accent-color);
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.http-header-name {
+    color: var(--text-secondary);
+}
+
+.http-header-value {
+    color: var(--text-primary);
+}
+
+.http-body-label {
+    color: var(--text-muted);
+    margin-top: 12px;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+/* 十六进制视图样式 */
+.packet-hex-view {
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.hex-line {
+    display: flex;
+    gap: 16px;
+}
+
+.hex-offset {
+    color: var(--text-muted);
+}
+
+.hex-bytes {
+    color: var(--text-primary);
+}
+
+.hex-ascii {
+    color: var(--accent-color);
+}
+
+/* 全屏弹出层基础样式 */
+.fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.fullscreen-overlay.hidden {
+    display: none;
+}

@@ -773,7 +773,6 @@ html body {
         transform: translateY(-100%);
         opacity: 0;
     }
-
     to {
         transform: translateY(0);
         opacity: 1;
@@ -785,7 +784,6 @@ html body {
         transform: translateY(0);
         opacity: 1;
     }
-
     to {
         transform: translateY(-100%);
         opacity: 0;
@@ -876,130 +874,91 @@ html body {
     background: rgba(244, 67, 54, 0.15);
     border-color: rgba(244, 67, 54, 0.3);
 }
-
-.stats-item-vertical.dangerous .stats-value-large {
-    color: #f44336;
-}
+.stats-item-vertical.dangerous .stats-value-large { color: #f44336; }
 
 /* 签名 - 紫色 */
 .stats-item-vertical.signature {
     background: rgba(156, 39, 176, 0.15);
     border-color: rgba(156, 39, 176, 0.3);
 }
-
-.stats-item-vertical.signature .stats-value-large {
-    color: #9c27b0;
-}
+.stats-item-vertical.signature .stats-value-large { color: #9c27b0; }
 
 /* 签名|特权 - 深紫色 */
 .stats-item-vertical.signature-privileged {
     background: rgba(103, 58, 183, 0.15);
     border-color: rgba(103, 58, 183, 0.3);
 }
-
-.stats-item-vertical.signature-privileged .stats-value-large {
-    color: #673ab7;
-}
+.stats-item-vertical.signature-privileged .stats-value-large { color: #673ab7; }
 
 /* 签名|特权|开发 - 靛蓝色 */
 .stats-item-vertical.signature-dev {
     background: rgba(63, 81, 181, 0.15);
     border-color: rgba(63, 81, 181, 0.3);
 }
-
-.stats-item-vertical.signature-dev .stats-value-large {
-    color: #3f51b5;
-}
+.stats-item-vertical.signature-dev .stats-value-large { color: #3f51b5; }
 
 /* 签名|特权|应用操作 - 蓝绿色 */
 .stats-item-vertical.signature-privileged-appop {
     background: rgba(0, 150, 136, 0.15);
     border-color: rgba(0, 150, 136, 0.3);
 }
-
-.stats-item-vertical.signature-privileged-appop .stats-value-large {
-    color: #009688;
-}
+.stats-item-vertical.signature-privileged-appop .stats-value-large { color: #009688; }
 
 /* 签名|应用操作 - 青色 */
 .stats-item-vertical.signature-appop {
     background: rgba(0, 188, 212, 0.15);
     border-color: rgba(0, 188, 212, 0.3);
 }
-
-.stats-item-vertical.signature-appop .stats-value-large {
-    color: #00bcd4;
-}
+.stats-item-vertical.signature-appop .stats-value-large { color: #00bcd4; }
 
 /* 签名|预装|已知签名者|角色 - 蓝灰色 */
 .stats-item-vertical.signature-preinstalled {
     background: rgba(96, 125, 139, 0.15);
     border-color: rgba(96, 125, 139, 0.3);
 }
-
-.stats-item-vertical.signature-preinstalled .stats-value-large {
-    color: #607d8b;
-}
+.stats-item-vertical.signature-preinstalled .stats-value-large { color: #607d8b; }
 
 /* 内部|角色 - 棕色 */
 .stats-item-vertical.internal-role {
     background: rgba(121, 85, 72, 0.15);
     border-color: rgba(121, 85, 72, 0.3);
 }
-
-.stats-item-vertical.internal-role .stats-value-large {
-    color: #795548;
-}
+.stats-item-vertical.internal-role .stats-value-large { color: #795548; }
 
 /* 内部|特权 - 深棕色 */
 .stats-item-vertical.internal-privileged {
     background: rgba(93, 64, 55, 0.15);
     border-color: rgba(93, 64, 55, 0.3);
 }
-
-.stats-item-vertical.internal-privileged .stats-value-large {
-    color: #8d6e63;
-}
+.stats-item-vertical.internal-privileged .stats-value-large { color: #8d6e63; }
 
 /* 普通 - 绿色 */
 .stats-item-vertical.normal {
     background: rgba(76, 175, 80, 0.15);
     border-color: rgba(76, 175, 80, 0.3);
 }
-
-.stats-item-vertical.normal .stats-value-large {
-    color: #4CAF50;
-}
+.stats-item-vertical.normal .stats-value-large { color: #4CAF50; }
 
 /* 普通|即时 - 浅绿色 */
 .stats-item-vertical.normal-instant {
     background: rgba(139, 195, 74, 0.15);
     border-color: rgba(139, 195, 74, 0.3);
 }
-
-.stats-item-vertical.normal-instant .stats-value-large {
-    color: #8bc34a;
-}
+.stats-item-vertical.normal-instant .stats-value-large { color: #8bc34a; }
 
 /* 普通|应用操作|即时 - 黄绿色 */
 .stats-item-vertical.normal-appop {
     background: rgba(205, 220, 57, 0.15);
     border-color: rgba(205, 220, 57, 0.3);
 }
-
-.stats-item-vertical.normal-appop .stats-value-large {
-    color: #cddc39;
-}
+.stats-item-vertical.normal-appop .stats-value-large { color: #cddc39; }
 
 /* 其他 - 橙黄色 */
 .stats-item-vertical.other {
     background: rgba(255, 152, 0, 0.15);
     border-color: rgba(255, 152, 0, 0.3);
 }
-
-.stats-item-vertical.other .stats-value-large {
-    color: #ff9800;
-}
+.stats-item-vertical.other .stats-value-large { color: #ff9800; }
 
 .stats-value-large {
     font-size: 20px;
@@ -1034,15 +993,12 @@ html body {
     padding-bottom: 10px;
     box-sizing: border-box;
     /* 隐藏滚动条但保持可滚动 */
-    scrollbar-width: none;
-    /* Firefox */
-    -ms-overflow-style: none;
-    /* IE/Edge */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
 }
 
 .permissions-columns::-webkit-scrollbar {
-    display: none;
-    /* Chrome/Safari/Opera */
+    display: none; /* Chrome/Safari/Opera */
 }
 
 .permissions-column {
@@ -1076,130 +1032,91 @@ html body {
     border-left-color: #f44336;
     background: rgba(244, 67, 54, 0.08);
 }
-
-.permission-item.permission-level-dangerous:hover {
-    background: rgba(244, 67, 54, 0.12);
-}
+.permission-item.permission-level-dangerous:hover { background: rgba(244, 67, 54, 0.12); }
 
 /* 签名权限 - 紫色 */
 .permission-item.permission-level-signature {
     border-left-color: #9c27b0;
     background: rgba(156, 39, 176, 0.08);
 }
-
-.permission-item.permission-level-signature:hover {
-    background: rgba(156, 39, 176, 0.12);
-}
+.permission-item.permission-level-signature:hover { background: rgba(156, 39, 176, 0.12); }
 
 /* 签名|特权 - 深紫色 */
 .permission-item.permission-level-signature-privileged {
     border-left-color: #673ab7;
     background: rgba(103, 58, 183, 0.08);
 }
-
-.permission-item.permission-level-signature-privileged:hover {
-    background: rgba(103, 58, 183, 0.12);
-}
+.permission-item.permission-level-signature-privileged:hover { background: rgba(103, 58, 183, 0.12); }
 
 /* 签名|特权|开发 - 靛蓝色 */
 .permission-item.permission-level-signature-dev {
     border-left-color: #3f51b5;
     background: rgba(63, 81, 181, 0.08);
 }
-
-.permission-item.permission-level-signature-dev:hover {
-    background: rgba(63, 81, 181, 0.12);
-}
+.permission-item.permission-level-signature-dev:hover { background: rgba(63, 81, 181, 0.12); }
 
 /* 签名|特权|应用操作 - 蓝绿色 */
 .permission-item.permission-level-signature-privileged-appop {
     border-left-color: #009688;
     background: rgba(0, 150, 136, 0.08);
 }
-
-.permission-item.permission-level-signature-privileged-appop:hover {
-    background: rgba(0, 150, 136, 0.12);
-}
+.permission-item.permission-level-signature-privileged-appop:hover { background: rgba(0, 150, 136, 0.12); }
 
 /* 签名|应用操作 - 青色 */
 .permission-item.permission-level-signature-appop {
     border-left-color: #00bcd4;
     background: rgba(0, 188, 212, 0.08);
 }
-
-.permission-item.permission-level-signature-appop:hover {
-    background: rgba(0, 188, 212, 0.12);
-}
+.permission-item.permission-level-signature-appop:hover { background: rgba(0, 188, 212, 0.12); }
 
 /* 签名|预装|已知签名者|角色 - 蓝灰色 */
 .permission-item.permission-level-signature-preinstalled {
     border-left-color: #607d8b;
     background: rgba(96, 125, 139, 0.08);
 }
-
-.permission-item.permission-level-signature-preinstalled:hover {
-    background: rgba(96, 125, 139, 0.12);
-}
+.permission-item.permission-level-signature-preinstalled:hover { background: rgba(96, 125, 139, 0.12); }
 
 /* 内部|角色 - 棕色 */
 .permission-item.permission-level-internal-role {
     border-left-color: #795548;
     background: rgba(121, 85, 72, 0.08);
 }
-
-.permission-item.permission-level-internal-role:hover {
-    background: rgba(121, 85, 72, 0.12);
-}
+.permission-item.permission-level-internal-role:hover { background: rgba(121, 85, 72, 0.12); }
 
 /* 内部|特权 - 深棕色 */
 .permission-item.permission-level-internal-privileged {
     border-left-color: #8d6e63;
     background: rgba(93, 64, 55, 0.08);
 }
-
-.permission-item.permission-level-internal-privileged:hover {
-    background: rgba(93, 64, 55, 0.12);
-}
+.permission-item.permission-level-internal-privileged:hover { background: rgba(93, 64, 55, 0.12); }
 
 /* 普通权限 - 绿色 */
 .permission-item.permission-level-normal {
     border-left-color: #4CAF50;
     background: rgba(76, 175, 80, 0.08);
 }
-
-.permission-item.permission-level-normal:hover {
-    background: rgba(76, 175, 80, 0.12);
-}
+.permission-item.permission-level-normal:hover { background: rgba(76, 175, 80, 0.12); }
 
 /* 普通|即时 - 浅绿色 */
 .permission-item.permission-level-normal-instant {
     border-left-color: #8bc34a;
     background: rgba(139, 195, 74, 0.08);
 }
-
-.permission-item.permission-level-normal-instant:hover {
-    background: rgba(139, 195, 74, 0.12);
-}
+.permission-item.permission-level-normal-instant:hover { background: rgba(139, 195, 74, 0.12); }
 
 /* 普通|应用操作|即时 - 黄绿色 */
 .permission-item.permission-level-normal-appop {
     border-left-color: #cddc39;
     background: rgba(205, 220, 57, 0.08);
 }
-
-.permission-item.permission-level-normal-appop:hover {
-    background: rgba(205, 220, 57, 0.12);
-}
+.permission-item.permission-level-normal-appop:hover { background: rgba(205, 220, 57, 0.12); }
 
 /* 其他权限 - 橙黄色 */
 .permission-item.permission-level-other {
     border-left-color: #ff9800;
     background: rgba(255, 152, 0, 0.08);
 }
-
-.permission-item.permission-level-other:hover {
-    background: rgba(255, 152, 0, 0.12);
-}
+.permission-item.permission-level-other:hover { background: rgba(255, 152, 0, 0.12); }
 
 .permission-header {
     display: flex;
@@ -2119,13 +2036,10 @@ html body {
 }
 
 @keyframes ai-pulse {
-
-    0%,
-    100% {
+    0%, 100% {
         opacity: 0.8;
         transform: scale(1);
     }
-
     50% {
         opacity: 1;
         transform: scale(1.1);
@@ -2458,41 +2372,15 @@ html body {
 }
 
 /* 语法高亮基础颜色 */
-.syntax-keyword {
-    color: #569cd6;
-}
-
-.syntax-string {
-    color: #ce9178;
-}
-
-.syntax-number {
-    color: #b5cea8;
-}
-
-.syntax-comment {
-    color: #6a9955;
-}
-
-.syntax-annotation {
-    color: #dcdcaa;
-}
-
-.syntax-class {
-    color: #4ec9b0;
-}
-
-.syntax-method {
-    color: #dcdcaa;
-}
-
-.syntax-operator {
-    color: #d4d4d4;
-}
-
-.syntax-bracket {
-    color: #ffd700;
-}
+.syntax-keyword { color: #569cd6; }
+.syntax-string { color: #ce9178; }
+.syntax-number { color: #b5cea8; }
+.syntax-comment { color: #6a9955; }
+.syntax-annotation { color: #dcdcaa; }
+.syntax-class { color: #4ec9b0; }
+.syntax-method { color: #dcdcaa; }
+.syntax-operator { color: #d4d4d4; }
+.syntax-bracket { color: #ffd700; }
 
 /* Hex查看器样式 */
 .hex-viewer-container {
@@ -2833,17 +2721,8 @@ html body {
 }
 
 @keyframes audio-pulse {
-
-    0%,
-    100% {
-        transform: scale(1);
-        opacity: 0.8;
-    }
-
-    50% {
-        transform: scale(1.05);
-        opacity: 1;
-    }
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.05); opacity: 1; }
 }
 
 .audio-player {
@@ -3013,25 +2892,11 @@ html body {
     color: #cccccc;
 }
 
-.sensitive-stat-item.url {
-    border-left: 3px solid #4fc3f7;
-}
-
-.sensitive-stat-item.ip {
-    border-left: 3px solid #81c784;
-}
-
-.sensitive-stat-item.access_key {
-    border-left: 3px solid #f44336;
-}
-
-.sensitive-stat-item.base64 {
-    border-left: 3px solid #ffb74d;
-}
-
-.sensitive-stat-item.number {
-    border-left: 3px solid #9575cd;
-}
+.sensitive-stat-item.url { border-left: 3px solid #4fc3f7; }
+.sensitive-stat-item.ip { border-left: 3px solid #81c784; }
+.sensitive-stat-item.access_key { border-left: 3px solid #f44336; }
+.sensitive-stat-item.base64 { border-left: 3px solid #ffb74d; }
+.sensitive-stat-item.number { border-left: 3px solid #9575cd; }
 
 .sensitive-stat-count {
     font-weight: 600;
@@ -3089,25 +2954,11 @@ html body {
     border-left-color: rgba(100, 150, 255, 0.8);
 }
 
-.sensitive-item.url {
-    border-left-color: #4fc3f7;
-}
-
-.sensitive-item.ip {
-    border-left-color: #81c784;
-}
-
-.sensitive-item.access_key {
-    border-left-color: #f44336;
-}
-
-.sensitive-item.base64 {
-    border-left-color: #ffb74d;
-}
-
-.sensitive-item.number {
-    border-left-color: #9575cd;
-}
+.sensitive-item.url { border-left-color: #4fc3f7; }
+.sensitive-item.ip { border-left-color: #81c784; }
+.sensitive-item.access_key { border-left-color: #f44336; }
+.sensitive-item.base64 { border-left-color: #ffb74d; }
+.sensitive-item.number { border-left-color: #9575cd; }
 
 .sensitive-item-content {
     font-size: 13px;
@@ -3139,30 +2990,11 @@ html body {
     flex-shrink: 0;
 }
 
-.sensitive-item-category.url {
-    background: rgba(79, 195, 247, 0.2);
-    color: #4fc3f7;
-}
-
-.sensitive-item-category.ip {
-    background: rgba(129, 199, 132, 0.2);
-    color: #81c784;
-}
-
-.sensitive-item-category.access_key {
-    background: rgba(244, 67, 54, 0.2);
-    color: #f44336;
-}
-
-.sensitive-item-category.base64 {
-    background: rgba(255, 183, 77, 0.2);
-    color: #ffb74d;
-}
-
-.sensitive-item-category.number {
-    background: rgba(149, 117, 205, 0.2);
-    color: #9575cd;
-}
+.sensitive-item-category.url { background: rgba(79, 195, 247, 0.2); color: #4fc3f7; }
+.sensitive-item-category.ip { background: rgba(129, 199, 132, 0.2); color: #81c784; }
+.sensitive-item-category.access_key { background: rgba(244, 67, 54, 0.2); color: #f44336; }
+.sensitive-item-category.base64 { background: rgba(255, 183, 77, 0.2); color: #ffb74d; }
+.sensitive-item-category.number { background: rgba(149, 117, 205, 0.2); color: #9575cd; }
 
 .sensitive-item-file {
     flex: 1;
@@ -3773,12 +3605,12 @@ html body {
 }
 
 /* 状态项 - 左侧垂直排列 */
-.capture-env-status>.env-status-item:nth-child(1) {
+.capture-env-status > .env-status-item:nth-child(1) {
     grid-column: 1;
     grid-row: 1;
 }
 
-.capture-env-status>.env-status-item:nth-child(2) {
+.capture-env-status > .env-status-item:nth-child(2) {
     grid-column: 1;
     grid-row: 2;
 }
@@ -3834,15 +3666,8 @@ html body {
 }
 
 @keyframes pulse {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.5;
-    }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
 .capture-init-btn {
@@ -4276,33 +4101,13 @@ html body {
 }
 
 /* 表格列宽 */
-.col-no {
-    width: 50px;
-}
-
-.col-time {
-    width: 100px;
-}
-
-.col-method {
-    width: 60px;
-}
-
-.col-host {
-    width: 150px;
-}
-
-.col-path {
-    min-width: 200px;
-}
-
-.col-status {
-    width: 60px;
-}
-
-.col-size {
-    width: 80px;
-}
+.col-no { width: 50px; }
+.col-time { width: 100px; }
+.col-method { width: 60px; }
+.col-host { width: 150px; }
+.col-path { min-width: 200px; }
+.col-status { width: 60px; }
+.col-size { width: 80px; }
 
 /* 方法标签颜色 */
 .method-tag {
@@ -4844,15 +4649,8 @@ html body {
 }
 
 @keyframes pulse {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.7;
-    }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
 }
 
 /* 第二行：选项行 */
@@ -5985,14 +5783,11 @@ html body {
 
 /* ========== AI 按钮新样式 ========== */
 .ai-btn {
-    background: linear-gradient(135deg,
-            #1e3a8a 0%,
-            /* 深蓝 */
-            #5b21b6 50%,
-            /* 深紫 */
-            #065f46 100%
-            /* 深绿 */
-        );
+    background: linear-gradient(135deg, 
+        #1e3a8a 0%,   /* 深蓝 */
+        #5b21b6 50%,  /* 深紫 */
+        #065f46 100%  /* 深绿 */
+    );
     background-size: 200% 200%;
     animation: ai-gradient-shift 3s ease infinite, ai-btn-blink 2s ease-in-out infinite;
     border: none;
@@ -6007,28 +5802,17 @@ html body {
 
 /* 渐变移动动画 */
 @keyframes ai-gradient-shift {
-    0% {
-        background-position: 0% 50%;
-    }
-
-    50% {
-        background-position: 100% 50%;
-    }
-
-    100% {
-        background-position: 0% 50%;
-    }
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 /* 闪烁动画 */
 @keyframes ai-btn-blink {
-
-    0%,
-    100% {
+    0%, 100% {
         opacity: 1;
         box-shadow: 0 2px 8px rgba(30, 58, 138, 0.3);
     }
-
     50% {
         opacity: 0.7;
         box-shadow: 0 4px 16px rgba(30, 58, 138, 0.6);
@@ -7134,37 +6918,13 @@ html body {
     background: rgba(59, 130, 246, 0.15);
 }
 
-.col-no {
-    width: 40px;
-}
-
-.col-time {
-    width: 80px;
-}
-
-.col-method {
-    width: 60px;
-}
-
-.col-host {
-    width: 150px;
-}
-
-.col-path {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 200px;
-}
-
-.col-status {
-    width: 50px;
-}
-
-.col-size {
-    width: 60px;
-}
+.col-no { width: 40px; }
+.col-time { width: 80px; }
+.col-method { width: 60px; }
+.col-host { width: 150px; }
+.col-path { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+.col-status { width: 50px; }
+.col-size { width: 60px; }
 
 .method-tag {
     padding: 2px 6px;
@@ -7173,45 +6933,16 @@ html body {
     font-weight: 500;
 }
 
-.method-tag.get {
-    background: rgba(34, 197, 94, 0.2);
-    color: #22c55e;
-}
+.method-tag.get { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+.method-tag.post { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+.method-tag.put { background: rgba(249, 115, 22, 0.2); color: #f97316; }
+.method-tag.delete { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
 
-.method-tag.post {
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
-}
-
-.method-tag.put {
-    background: rgba(249, 115, 22, 0.2);
-    color: #f97316;
-}
-
-.method-tag.delete {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-}
-
-.status-code {
-    font-weight: 500;
-}
-
-.status-code.success {
-    color: #22c55e;
-}
-
-.status-code.redirect {
-    color: #eab308;
-}
-
-.status-code.client-error {
-    color: #f97316;
-}
-
-.status-code.server-error {
-    color: #ef4444;
-}
+.status-code { font-weight: 500; }
+.status-code.success { color: #22c55e; }
+.status-code.redirect { color: #eab308; }
+.status-code.client-error { color: #f97316; }
+.status-code.server-error { color: #ef4444; }
 
 
 /* 抓包记录弹出层样式 */
@@ -7877,14 +7608,14 @@ html body {
 .modal-textarea,
 .modal-select {
     background: #2a2d36 !important;
-    border-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255,255,255,0.1) !important;
     color: #ffffff !important;
 }
 
 .capture-type-item:hover,
 .capture-script-item:hover,
 .capture-history-session:hover {
-    background: rgba(255, 255, 255, 0.05) !important;
+    background: rgba(255,255,255,0.05) !important;
 }
 
 .capture-type-item.selected {
@@ -7913,7 +7644,7 @@ html body {
 .session-time,
 .session-stats,
 .modal-desc {
-    color: rgba(255, 255, 255, 0.6) !important;
+    color: rgba(255,255,255,0.6) !important;
 }
 
 .session-capture-target {
@@ -7926,7 +7657,7 @@ html body {
 .section-action-btn,
 .capture-history-action-btn,
 .modal-btn-secondary {
-    border-color: rgba(255, 255, 255, 0.2) !important;
+    border-color: rgba(255,255,255,0.2) !important;
 }
 
 .capture-type-item.selected .capture-type-radio,
@@ -7950,16 +7681,16 @@ html body {
 .capture-history-btn,
 .capture-back-btn,
 .modal-btn-secondary {
-    color: rgba(255, 255, 255, 0.7) !important;
+    color: rgba(255,255,255,0.7) !important;
 }
 
 .capture-packets-table th {
     background: #1e2028 !important;
-    color: rgba(255, 255, 255, 0.6) !important;
+    color: rgba(255,255,255,0.6) !important;
 }
 
 .capture-packets-table td {
-    border-color: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255,255,255,0.05) !important;
 }
 
 .fullscreen-overlay {
@@ -7972,7 +7703,7 @@ html body {
 
 .capture-resizer,
 .capture-history-resizer {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255,255,255,0.1);
 }
 
 .capture-resizer:hover,
@@ -8015,7 +7746,7 @@ html body {
 }
 
 .http-header-name {
-    color: rgba(255, 255, 255, 0.5) !important;
+    color: rgba(255,255,255,0.5) !important;
 }
 
 .http-header-value {
@@ -8240,25 +7971,11 @@ html body {
     text-align: center;
 }
 
-.capture-stat-item[data-filter="TCP"] .stat-count {
-    color: #60a5fa;
-}
-
-.capture-stat-item[data-filter="UDP"] .stat-count {
-    color: #a78bfa;
-}
-
-.capture-stat-item[data-filter="HTTP"] .stat-count {
-    color: #34d399;
-}
-
-.capture-stat-item[data-filter="HTTPS"] .stat-count {
-    color: #fbbf24;
-}
-
-.capture-stat-item[data-filter="DNS"] .stat-count {
-    color: #f472b6;
-}
+.capture-stat-item[data-filter="TCP"] .stat-count { color: #60a5fa; }
+.capture-stat-item[data-filter="UDP"] .stat-count { color: #a78bfa; }
+.capture-stat-item[data-filter="HTTP"] .stat-count { color: #34d399; }
+.capture-stat-item[data-filter="HTTPS"] .stat-count { color: #fbbf24; }
+.capture-stat-item[data-filter="DNS"] .stat-count { color: #f472b6; }
 
 /* 全流量抓包 wrapper 显示控制 */
 #realtime-packets-wrapper {
@@ -8272,38 +7989,14 @@ html body {
 }
 
 /* 全流量表格列宽调整 */
-.realtime-table .col-no {
-    width: 50px;
-}
-
-.realtime-table .col-time {
-    width: 80px;
-}
-
-.realtime-table .col-protocol {
-    width: 70px;
-}
-
-.realtime-table .col-direction {
-    width: 50px;
-}
-
-.realtime-table .col-src {
-    width: 150px;
-}
-
-.realtime-table .col-dst {
-    width: 150px;
-}
-
-.realtime-table .col-length {
-    width: 60px;
-}
-
-.realtime-table .col-info {
-    flex: 1;
-    min-width: 100px;
-}
+.realtime-table .col-no { width: 50px; }
+.realtime-table .col-time { width: 80px; }
+.realtime-table .col-protocol { width: 70px; }
+.realtime-table .col-direction { width: 50px; }
+.realtime-table .col-src { width: 150px; }
+.realtime-table .col-dst { width: 150px; }
+.realtime-table .col-length { width: 60px; }
+.realtime-table .col-info { flex: 1; min-width: 100px; }
 
 /* 协议标签 */
 .protocol-tag {
@@ -8534,3 +8227,4 @@ html body {
     padding-left: 15px;
     border-left: 1px solid rgba(255, 255, 255, 0.1);
 }
+

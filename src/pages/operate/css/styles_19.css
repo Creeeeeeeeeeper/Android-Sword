@@ -1,0 +1,112 @@
+.sensitive-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid #3d3d3d;
+    flex-shrink: 0;
+}
+
+.sensitive-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    font-size: 11px;
+    color: #cccccc;
+}
+
+.sensitive-stat-item.url {
+    border-left: 3px solid #4fc3f7;
+}
+
+.sensitive-stat-item.ip {
+    border-left: 3px solid #81c784;
+}
+
+.sensitive-stat-item.access_key {
+    border-left: 3px solid #f44336;
+}
+
+.sensitive-stat-item.base64 {
+    border-left: 3px solid #ffb74d;
+}
+
+.sensitive-stat-item.number {
+    border-left: 3px solid #9575cd;
+}
+
+.sensitive-stat-count {
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.sensitive-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.sensitive-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.sensitive-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sensitive-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.sensitive-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666666;
+    font-size: 14px;
+}
+
+.sensitive-item {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-left: 3px solid transparent;
+    overflow: hidden;
+    max-width: 100%;
+}
+
+.sensitive-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sensitive-item.selected {
+    background: rgba(100, 150, 255, 0.2);
+    border-left-color: rgba(100, 150, 255, 0.8);
+}
+
+.sensitive-item.url {
+    border-left-color: #4fc3f7;
+}
+
+.sensitive-item.ip {
+    border-left-color: #81c784;
+}
+
+.sensitive-item.access_key {
+    border-left-color: #f44336;
+}
+
+.sensitive-item.base64 {
+    border-left-color: #ffb74d;
+}

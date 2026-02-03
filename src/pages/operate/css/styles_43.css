@@ -1,0 +1,169 @@
+.preset-item {
+    padding: 12px 15px;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-size: 14px;
+    color: #e0e0e0;
+    border-left: 3px solid transparent;
+}
+
+.preset-item:hover {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.preset-item.active {
+    background: rgba(102, 126, 234, 0.2);
+    border-left-color: #667eea;
+    color: #ffffff;
+}
+
+.presets-editor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+}
+
+.preset-editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+.preset-name-input {
+    flex: 1;
+    padding: 10px 12px;
+    background: #2a2a3a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #e0e0e0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.preset-name-input:focus {
+    outline: none;
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.preset-name-input[readonly] {
+    background: rgba(42, 42, 58, 0.5);
+    cursor: default;
+}
+
+.preset-editor-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.preset-action-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: rgba(102, 126, 234, 0.1);
+    color: #82b1ff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.preset-action-btn:hover {
+    background: rgba(102, 126, 234, 0.2);
+}
+
+.preset-editor-footer {
+    margin-top: 15px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.presets-editor .prompt-textarea {
+    flex: 1;
+}
+
+/* AI 菜单中的信息展示区域 */
+.ai-menu-section {
+    padding: 10px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.ai-menu-label {
+    font-size: 12px;
+    color: #888;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.ai-menu-value {
+    font-size: 14px;
+    color: #82b1ff;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+/* 默认提示词样式（只读状态） */
+.preset-item.default-preset {
+    color: #888;
+    font-style: italic;
+}
+
+.preset-item.default-preset::after {
+    content: '（默认）';
+    margin-left: 5px;
+    font-size: 12px;
+}
+
+/* 当前正在使用的提示词样式 */
+.preset-item.current-using {
+    background: rgba(130, 177, 255, 0.15);
+    border-left: 3px solid #82b1ff;
+    font-weight: 600;
+}
+
+.preset-item.current-using::before {
+    content: '● ';
+    color: #82b1ff;
+    margin-right: 5px;
+}
+
+/* 设备选择下拉框样式 */
+.device-selector-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: #2a2a2a;
+    border-bottom: 1px solid #3a3a3a;
+}
+
+.device-selector-label {
+    color: #ccc;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.device-selector {
+    flex: 1;
+    min-width: 120px;
+    max-width: 200px;
+    padding: 4px 8px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+}
+
+.device-selector:hover {
+    border-color: #4a90d9;
+}

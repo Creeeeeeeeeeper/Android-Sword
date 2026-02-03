@@ -1,0 +1,92 @@
+.modal-btn {
+    padding: 8px 18px;
+    font-size: 13px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-btn-secondary {
+    background: #4a4d5a;
+    color: #b0b0b0;
+}
+
+.modal-btn-secondary:hover {
+    background: #5a5d6a;
+    color: #fff;
+}
+
+.modal-btn-primary {
+    background: linear-gradient(135deg, #5a7ab8 0%, #4a6aa8 100%);
+    color: #fff;
+}
+
+.modal-btn-primary:hover {
+    background: linear-gradient(135deg, #6a8ac8 0%, #5a7ab8 100%);
+}
+
+.modal-btn-danger {
+    background: #f44336;
+    color: #fff;
+}
+
+.modal-btn-danger:hover {
+    background: #d32f2f;
+}
+
+/* Modal表单样式 */
+.modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.modal-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.modal-label {
+    font-size: 12px;
+    color: #b0b0b0;
+}
+
+.modal-label .required {
+    color: #f44336;
+    margin-left: 2px;
+}
+
+.modal-input,
+.modal-textarea,
+.modal-select {
+    padding: 10px 12px;
+    font-size: 13px;
+    background: #3a3d48;
+    color: #e0e0e0;
+    border: 1px solid #4a4d5a;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.modal-input:focus,
+.modal-textarea:focus,
+.modal-select:focus {
+    border-color: #5a7ab8;
+}
+
+.modal-input::placeholder,
+.modal-textarea::placeholder {
+    color: #666;
+}
+
+.modal-textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.modal-select {
+    cursor: pointer;
+}

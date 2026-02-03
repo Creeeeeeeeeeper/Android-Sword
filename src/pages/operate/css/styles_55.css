@@ -1,0 +1,52 @@
+.capture-type-item.selected .capture-type-radio,
+.script-checkbox.checked {
+    border-color: #3b82f6 !important;
+    background: #3b82f6 !important;
+}
+
+.capture-start-main-btn,
+.modal-btn-primary,
+.packet-detail-tab.active {
+    background: #3b82f6 !important;
+    color: #ffffff !important;
+}
+
+.capture-start-main-btn:hover:not(:disabled),
+.modal-btn-primary:hover {
+    background: #2563eb !important;
+}
+
+.capture-history-btn,
+.capture-back-btn,
+.modal-btn-secondary {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.capture-packets-table th {
+    background: #1e2028 !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.capture-packets-table td {
+    border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.fullscreen-overlay {
+    background: rgba(0, 0, 0, 0.8) !important;
+}
+
+.modal-overlay {
+    background: rgba(0, 0, 0, 0.7) !important;
+}
+
+.capture-resizer,
+.capture-history-resizer {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.capture-resizer:hover,
+.capture-resizer.active,
+.capture-history-resizer:hover,
+.capture-history-resizer.active {
+    background: #3b82f6;
+}

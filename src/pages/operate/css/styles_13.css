@@ -1,0 +1,159 @@
+.tree-node-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tree-node-ai-icon {
+    font-size: 12px;
+    margin-left: 4px;
+    flex-shrink: 0;
+    animation: ai-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ai-pulse {
+
+    0%,
+    100% {
+        opacity: 0.8;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+.tree-node-children {
+    padding-left: 16px;
+}
+
+.tree-node-children.collapsed {
+    display: none;
+}
+
+/* 文件树节点加载中的旋转圆圈 */
+.tree-node-toggle.loading {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* 拖拽调整大小 */
+.jadx-resizer {
+    width: 4px;
+    background: transparent;
+    cursor: col-resize;
+    transition: background 0.2s;
+}
+
+.jadx-resizer:hover,
+.jadx-resizer.active {
+    background: rgba(100, 150, 255, 0.5);
+}
+
+/* 源码显示区域 */
+.jadx-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #1e1e1e;
+}
+
+.jadx-code-container {
+    flex: 1;
+    overflow: auto;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.jadx-code-container::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.jadx-code-container::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+.jadx-code-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+}
+
+.jadx-code-container::-webkit-scrollbar-corner {
+    background: #1e1e1e;
+}
+
+.code-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.code-line {
+    height: 21px;
+}
+
+.code-line:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.code-line.highlighted {
+    background: rgba(255, 255, 0, 0.15);
+}
+
+.line-number {
+    padding: 0 12px;
+    text-align: right;
+    color: #5a5a5a;
+    user-select: none;
+    border-right: 1px solid #3d3d3d;
+    min-width: 50px;
+    vertical-align: top;
+}
+
+.line-content {
+    padding: 0 12px;
+    white-space: pre;
+    color: #d4d4d4;
+    vertical-align: top;
+}
+
+/* 搜索蒙层 */
+.search-overlay-container {
+    width: 90%;
+    height: 85%;
+    background: #1e1e1e;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    position: relative;
+}
+
+.search-overlay-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 10;
+}
+
+.search-header {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #3d3d3d;
+    gap: 12px;
+}

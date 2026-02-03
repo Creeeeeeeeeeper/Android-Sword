@@ -1,0 +1,118 @@
+.capture-type-item.selected .capture-type-radio::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    background: var(--accent-color);
+    border-radius: 50%;
+}
+
+.capture-type-info {
+    flex: 1;
+}
+
+.capture-type-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.capture-type-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* 抓包目标选择 */
+.capture-target-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.capture-target-section .capture-select {
+    flex: 1;
+    min-width: 150px;
+}
+
+.capture-device-apps,
+.realtime-device-apps {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.capture-options {
+    margin-top: 10px;
+}
+
+/* 辅助脚本选择 */
+.capture-scripts-categories {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.capture-scripts-loading,
+.capture-scripts-error,
+.capture-scripts-empty {
+    padding: 20px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.capture-scripts-category {
+    margin-bottom: 8px;
+}
+
+.capture-scripts-category-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: var(--bg-primary);
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.capture-scripts-category-header:hover {
+    background: var(--bg-hover);
+}
+
+.capture-scripts-category-header .category-icon {
+    font-size: 10px;
+    color: var(--text-secondary);
+    transition: transform 0.2s;
+}
+
+.capture-scripts-category.collapsed .category-icon {
+    transform: rotate(-90deg);
+}
+
+.capture-scripts-category-header .category-name {
+    flex: 1;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.capture-scripts-category-header .category-count {
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.capture-scripts-category-content {
+    padding-left: 16px;
+    margin-top: 4px;
+}
+
+.capture-scripts-category.collapsed .capture-scripts-category-content {
+    display: none;
+}

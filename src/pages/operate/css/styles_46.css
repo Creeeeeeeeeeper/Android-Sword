@@ -1,0 +1,149 @@
+.capture-script-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.capture-script-item:hover {
+    background: var(--bg-hover);
+}
+
+.capture-script-item.selected {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.script-checkbox {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    position: relative;
+}
+
+.script-checkbox.checked {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.script-checkbox.checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.script-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.script-name {
+    font-size: 13px;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.script-desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.capture-history-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.capture-history-btn:hover {
+    border-color: var(--text-primary);
+    color: var(--text-primary);
+}
+
+.capture-start-main-btn {
+    background: var(--accent-color);
+    border: none;
+    color: white;
+    padding: 10px 30px;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.capture-start-main-btn:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+
+.capture-start-main-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 抓包运行页面样式 */
+.capture-running-page {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.capture-running-page.hidden {
+    display: none;
+}
+
+.capture-running-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.capture-back-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.capture-back-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.capture-running-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.capture-running-type {
+    background: var(--accent-color);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}

@@ -1,0 +1,124 @@
+.overview-stat-item.signature .overview-stat-value {
+    color: #9c27b0;
+}
+
+.overview-stat-item.signature-privileged {
+    border-left-color: #673ab7;
+}
+
+.overview-stat-item.signature-privileged .overview-stat-value {
+    color: #673ab7;
+}
+
+.overview-stat-item.normal {
+    border-left-color: #4CAF50;
+}
+
+.overview-stat-item.normal .overview-stat-value {
+    color: #4CAF50;
+}
+
+.overview-stat-item.other {
+    border-left-color: #ff9800;
+}
+
+.overview-stat-item.other .overview-stat-value {
+    color: #ff9800;
+}
+
+.overview-stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.2;
+}
+
+.overview-stat-label {
+    font-size: 11px;
+    color: #888888;
+    margin-top: 4px;
+}
+
+/* 签名信息行 */
+.overview-signature-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: center;
+}
+
+.overview-signature-verification {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.overview-signature-verification.verified {
+    background: rgba(76, 175, 80, 0.15);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    color: #4CAF50;
+}
+
+.overview-signature-verification.not-verified {
+    background: rgba(244, 67, 54, 0.15);
+    border: 1px solid rgba(244, 67, 54, 0.3);
+    color: #f44336;
+}
+
+.overview-verification-icon {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.overview-verification-text {
+    font-size: 13px;
+}
+
+.overview-signature-schemes {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.overview-schemes-label {
+    font-size: 12px;
+    color: #888888;
+}
+
+.overview-scheme-badge {
+    padding: 5px 12px;
+    background: rgba(100, 150, 255, 0.15);
+    border: 1px solid rgba(100, 150, 255, 0.3);
+    border-radius: 4px;
+    font-size: 12px;
+    color: rgba(130, 180, 255, 1);
+    font-weight: 500;
+}
+
+.overview-scheme-badge.unknown {
+    background: rgba(150, 150, 150, 0.15);
+    border-color: rgba(150, 150, 150, 0.3);
+    color: #999999;
+}
+
+/* IP检测区域样式 */
+.overview-ip-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.overview-ip-status {
+    font-size: 12px;
+    color: #888888;
+}
+
+.overview-ip-status .ip-progress {
+    color: rgba(100, 150, 255, 0.9);
+    font-weight: 500;
+}

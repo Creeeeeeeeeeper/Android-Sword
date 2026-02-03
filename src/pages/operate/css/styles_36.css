@@ -1,0 +1,166 @@
+/* 自定义脚本标签样式 */
+.frida-selected-tag.custom {
+    background: rgba(255, 152, 0, 0.2);
+    color: #ffb74d;
+    border: 1px solid rgba(255, 152, 0, 0.4);
+}
+
+.frida-selected-tag.custom .tag-label {
+    color: #ff9800;
+    font-weight: 500;
+    margin-right: 4px;
+}
+
+/* ============ 快速分析和检测模式样式 ============ */
+
+/* 统计信息栏 */
+.services-stats {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.services-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    min-width: 80px;
+}
+
+.services-stat-item .stat-label {
+    font-size: 11px;
+    color: #888888;
+    margin-top: 4px;
+}
+
+.services-stat-item .stat-value {
+    font-size: 20px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+/* 打包服务商样式 */
+.packer-item {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.packer-item .service-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.service-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.service-badge.packer {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+}
+
+.service-matched-files {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+    padding-left: 8px;
+    border-left: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.matched-file {
+    font-size: 11px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: #888888;
+    word-break: break-all;
+}
+
+/* SDK样式 */
+.sdk-item {
+    justify-content: space-between;
+}
+
+.service-so {
+    font-size: 11px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: #6ab0f3;
+    background: rgba(106, 176, 243, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* 检测模式区块 */
+.detection-section {
+    border-color: rgba(155, 89, 182, 0.3);
+}
+
+.detection-section .services-section-header {
+    background: rgba(155, 89, 182, 0.1);
+}
+
+.detection-section .services-section-title {
+    color: #9b59b6;
+}
+
+.detection-scan-btn {
+    background: rgba(155, 89, 182, 0.3);
+    color: #9b59b6;
+    border: 1px solid rgba(155, 89, 182, 0.5);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.detection-scan-btn:hover:not(:disabled) {
+    background: rgba(155, 89, 182, 0.5);
+}
+
+.detection-scan-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.detection-placeholder {
+    padding: 16px;
+    color: #888888;
+    font-size: 13px;
+}
+
+.detection-placeholder p {
+    margin: 8px 0;
+}
+
+.detection-placeholder ul {
+    margin: 8px 0 8px 20px;
+    padding: 0;
+}
+
+.detection-placeholder li {
+    margin: 4px 0;
+}
+
+/* 检测结果 */
+.detection-results {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.detection-category {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    overflow: hidden;
+}

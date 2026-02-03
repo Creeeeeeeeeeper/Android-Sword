@@ -1,0 +1,137 @@
+.capture-stop-btn {
+    flex: 1;
+    padding: 8px 16px;
+    background: rgba(244, 67, 54, 0.25);
+    border: 1px solid rgba(244, 67, 54, 0.5);
+    border-radius: 4px;
+    color: #f44336;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.capture-stop-btn:hover:not(:disabled) {
+    background: rgba(244, 67, 54, 0.35);
+}
+
+.capture-stop-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 抓包会话列表 */
+.capture-sessions {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.capture-sessions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #3d3d3d;
+    font-size: 13px;
+    font-weight: 500;
+    color: #ffffff;
+}
+
+.capture-sessions-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.capture-sessions-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.capture-sessions-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.capture-sessions-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.capture-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666666;
+    font-size: 13px;
+}
+
+.capture-session-item {
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-left: 3px solid transparent;
+}
+
+.capture-session-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.capture-session-item.selected {
+    background: rgba(100, 150, 255, 0.2);
+    border-left-color: rgba(100, 150, 255, 0.8);
+}
+
+.capture-session-item.capturing {
+    border-left-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.session-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.session-item-package {
+    font-size: 12px;
+    color: #ffffff;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 180px;
+}
+
+.session-item-status {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.session-item-status.capturing {
+    background: rgba(76, 175, 80, 0.25);
+    color: #4CAF50;
+}
+
+.session-item-status.completed {
+    background: rgba(100, 150, 255, 0.25);
+    color: #82b1ff;
+}
+
+.session-item-time {
+    font-size: 11px;
+    color: #888888;
+}
+
+.session-item-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+}

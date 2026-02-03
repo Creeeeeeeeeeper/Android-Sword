@@ -1,0 +1,125 @@
+.component-header:hover {
+    background: rgb(45, 45, 45);
+}
+
+.component-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.component-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #ffffff;
+}
+
+.component-count {
+    font-size: 11px;
+    color: #888888;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.component-toggle {
+    transition: transform 0.2s;
+}
+
+.component-toggle.collapsed .toggle-icon {
+    display: inline-block;
+    transform: rotate(0deg);
+    transition: transform 0.2s;
+}
+
+.component-toggle:not(.collapsed) .toggle-icon {
+    display: inline-block;
+    transform: rotate(90deg);
+    transition: transform 0.2s;
+}
+
+.toggle-icon {
+    font-size: 10px;
+    color: #888888;
+}
+
+.component-content {
+    transition: max-height 0.3s ease, opacity 0.2s ease;
+    overflow: hidden;
+}
+
+.component-content.collapsed {
+    max-height: 80px;
+    overflow-y: auto;
+}
+
+.component-content.collapsed::-webkit-scrollbar {
+    width: 6px;
+}
+
+.component-content.collapsed::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+.component-content.collapsed::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.component-content:not(.collapsed) {
+    max-height: none;
+}
+
+.component-list {
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.component-item {
+    font-size: 12px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: #cccccc;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    word-break: break-all;
+    cursor: default;
+}
+
+.component-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+}
+
+.component-empty {
+    font-size: 12px;
+    color: #666666;
+    padding: 8px;
+    text-align: center;
+}
+
+/* 签名验证状态 */
+.verification-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.verification-status.verified {
+    background: rgba(76, 175, 80, 0.15);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    color: #4CAF50;
+}
+
+.verification-status.not-verified {
+    background: rgba(244, 67, 54, 0.15);
+    border: 1px solid rgba(244, 67, 54, 0.3);
+    color: #f44336;
+}

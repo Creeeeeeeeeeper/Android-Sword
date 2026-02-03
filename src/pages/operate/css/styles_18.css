@@ -1,0 +1,203 @@
+.image-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    padding: 20px;
+    background: #1a1a1a;
+    /* 棋盘格背景，用于显示透明图片 */
+    background-image:
+        linear-gradient(45deg, #252525 25%, transparent 25%),
+        linear-gradient(-45deg, #252525 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #252525 75%),
+        linear-gradient(-45deg, transparent 75%, #252525 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+
+.preview-image {
+    max-width: none;
+    max-height: none;
+    object-fit: contain;
+    transition: transform 0.1s ease-out;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    border-radius: 2px;
+}
+
+/* ========== 音频预览器样式 ========== */
+.audio-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%);
+}
+
+.audio-icon {
+    font-size: 80px;
+    margin-bottom: 30px;
+    animation: audio-pulse 2s ease-in-out infinite;
+}
+
+@keyframes audio-pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+
+    50% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+}
+
+.audio-player {
+    width: 100%;
+    max-width: 500px;
+    height: 50px;
+    border-radius: 25px;
+    outline: none;
+}
+
+.audio-player::-webkit-media-controls-panel {
+    background: #2d2d2d;
+    border-radius: 25px;
+}
+
+.audio-file-info {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #888888;
+    max-width: 500px;
+    text-align: center;
+    word-break: break-all;
+}
+
+/* ========== 视频预览器样式 ========== */
+.video-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: #0a0a0a;
+}
+
+.video-player {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 4px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Hex预览按钮样式 */
+.hex-preview-btn {
+    width: auto;
+    padding: 0 10px;
+    white-space: nowrap;
+    background: rgba(100, 200, 100, 0.2);
+    border-color: rgba(100, 200, 100, 0.4);
+    margin-right: 8px;
+}
+
+.hex-preview-btn:hover {
+    background: rgba(100, 200, 100, 0.3);
+    border-color: rgba(100, 200, 100, 0.6);
+}
+
+/* ========== 敏感信息模块样式 ========== */
+.sensitive-container {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    gap: 0;
+    overflow: hidden;
+}
+
+.sensitive-left {
+    width: 45%;
+    min-width: 300px;
+    max-width: 60%;
+    display: flex;
+    flex-direction: column;
+    background: #252526;
+    border-right: 1px solid #3d3d3d;
+}
+
+.sensitive-toolbar {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #3d3d3d;
+    flex-shrink: 0;
+}
+
+.sensitive-select {
+    padding: 6px 10px;
+    background: #3c3c3c;
+    border: 1px solid #5a5a5a;
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+}
+
+.sensitive-select:hover {
+    border-color: #6a6a6a;
+}
+
+.sensitive-select:focus {
+    border-color: rgba(100, 150, 255, 0.6);
+}
+
+.sensitive-scan-btn {
+    padding: 6px 14px;
+    background: rgba(100, 150, 255, 0.25);
+    border: 1px solid rgba(100, 150, 255, 0.5);
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-left: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.sensitive-scan-btn:hover {
+    background: rgba(100, 150, 255, 0.35);
+}
+
+.sensitive-scan-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.sensitive-rescan-btn {
+    padding: 6px 14px;
+    background: rgba(255, 152, 0, 0.25);
+    border: 1px solid rgba(255, 152, 0, 0.5);
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.sensitive-rescan-btn:hover {
+    background: rgba(255, 152, 0, 0.35);
+}
+
+.sensitive-rescan-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

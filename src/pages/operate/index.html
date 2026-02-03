@@ -4,7 +4,69 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Android Screen Mirror - 操作页面</title>
-    <link rel="stylesheet" href="styles.css">
+    <!-- 原有的样式文件 -->
+    <!-- <link rel="stylesheet" href="styles.css"> -->
+    <!-- 引入拆分的css文件 -->
+    <link rel="stylesheet" href="css/styles_01.css">
+    <link rel="stylesheet" href="css/styles_02.css">
+    <link rel="stylesheet" href="css/styles_03.css">
+    <link rel="stylesheet" href="css/styles_04.css">
+    <link rel="stylesheet" href="css/styles_05.css">
+    <link rel="stylesheet" href="css/styles_06.css">
+    <link rel="stylesheet" href="css/styles_07.css">
+    <link rel="stylesheet" href="css/styles_08.css">
+    <link rel="stylesheet" href="css/styles_09.css">
+    <link rel="stylesheet" href="css/styles_10.css">
+    <link rel="stylesheet" href="css/styles_11.css">
+    <link rel="stylesheet" href="css/styles_12.css">
+    <link rel="stylesheet" href="css/styles_13.css">
+    <link rel="stylesheet" href="css/styles_14.css">
+    <link rel="stylesheet" href="css/styles_15.css">
+    <link rel="stylesheet" href="css/styles_16.css">
+    <link rel="stylesheet" href="css/styles_17.css">
+    <link rel="stylesheet" href="css/styles_18.css">
+    <link rel="stylesheet" href="css/styles_19.css">
+    <link rel="stylesheet" href="css/styles_20.css">
+    <link rel="stylesheet" href="css/styles_21.css">
+    <link rel="stylesheet" href="css/styles_22.css">
+    <link rel="stylesheet" href="css/styles_23.css">
+    <link rel="stylesheet" href="css/styles_24.css">
+    <link rel="stylesheet" href="css/styles_25.css">
+    <link rel="stylesheet" href="css/styles_26.css">
+    <link rel="stylesheet" href="css/styles_27.css">
+    <link rel="stylesheet" href="css/styles_28.css">
+    <link rel="stylesheet" href="css/styles_29.css">
+    <link rel="stylesheet" href="css/styles_30.css">
+    <link rel="stylesheet" href="css/styles_31.css">
+    <link rel="stylesheet" href="css/styles_32.css">
+    <link rel="stylesheet" href="css/styles_33.css">
+    <link rel="stylesheet" href="css/styles_34.css">
+    <link rel="stylesheet" href="css/styles_35.css">
+    <link rel="stylesheet" href="css/styles_36.css">
+    <link rel="stylesheet" href="css/styles_37.css">
+    <link rel="stylesheet" href="css/styles_38.css">
+    <link rel="stylesheet" href="css/styles_39.css">
+    <link rel="stylesheet" href="css/styles_40.css">
+    <link rel="stylesheet" href="css/styles_41.css">
+    <link rel="stylesheet" href="css/styles_42.css">
+    <link rel="stylesheet" href="css/styles_43.css">
+    <link rel="stylesheet" href="css/styles_44.css">
+    <link rel="stylesheet" href="css/styles_45.css">
+    <link rel="stylesheet" href="css/styles_46.css">
+    <link rel="stylesheet" href="css/styles_47.css">
+    <link rel="stylesheet" href="css/styles_48.css">
+    <link rel="stylesheet" href="css/styles_49.css">
+    <link rel="stylesheet" href="css/styles_50.css">
+    <link rel="stylesheet" href="css/styles_51.css">
+    <link rel="stylesheet" href="css/styles_52.css">
+    <link rel="stylesheet" href="css/styles_53.css">
+    <link rel="stylesheet" href="css/styles_54.css">
+    <link rel="stylesheet" href="css/styles_55.css">
+    <link rel="stylesheet" href="css/styles_56.css">
+    <link rel="stylesheet" href="css/styles_57.css">
+    <link rel="stylesheet" href="css/styles_58.css">
+    <link rel="stylesheet" href="css/styles_59.css">
+    <link rel="stylesheet" href="css/styles_60.css">
     <link rel="stylesheet" href="vs2015.min.css">
     <script src="highlight.min.js"></script>
 </head>
@@ -197,9 +259,9 @@
                             </div>
                         </div>
                         <div id="tab-capture" class="operation-panel">
-                            <div class="capture-container">
-                                <!-- 左侧抓包控制和会话列表 -->
-                                <div class="capture-left">
+                            <!-- 页面1：抓包选择页面 -->
+                            <div class="capture-setup-page" id="capture-setup-page">
+                                <div class="capture-setup-container">
                                     <!-- 环境状态 -->
                                     <div class="capture-env-status" id="capture-env-status">
                                         <div class="env-status-item" id="frida-env-status">
@@ -218,20 +280,106 @@
                                             <button class="capture-init-btn capture-stop-server-btn" id="stop-server-btn" style="display: none;">停止服务</button>
                                         </div>
                                     </div>
-                                    <!-- 抓包控制 -->
-                                    <div class="capture-control">
-                                        <div class="capture-target">
-                                            <label>抓包目标：</label>
+
+                                    <!-- 抓包类型选择 -->
+                                    <div class="capture-type-section">
+                                        <div class="section-title">抓包类型</div>
+                                        <div class="capture-type-list">
+                                            <div class="capture-type-item selected" data-type="realtime">
+                                                <div class="capture-type-radio"></div>
+                                                <div class="capture-type-info">
+                                                    <div class="capture-type-name">全流量抓包 (推荐)</div>
+                                                    <div class="capture-type-desc">一键捕获所有TCP/UDP/DNS流量，实时显示，支持按协议分类，需ROOT权限</div>
+                                                </div>
+                                            </div>
+                                            <div class="capture-type-item" data-type="r0capture">
+                                                <div class="capture-type-radio"></div>
+                                                <div class="capture-type-info">
+                                                    <div class="capture-type-name">r0capture (Hook抓包)</div>
+                                                    <div class="capture-type-desc">基于Frida Hook SSL层，直接获取HTTPS明文流量，支持绕过证书校验</div>
+                                                </div>
+                                            </div>
+                                            <div class="capture-type-item" data-type="tcpdump">
+                                                <div class="capture-type-radio"></div>
+                                                <div class="capture-type-info">
+                                                    <div class="capture-type-name">tcpdump (保存pcap)</div>
+                                                    <div class="capture-type-desc">捕获原始网络数据包，可导出pcap文件用Wireshark分析，HTTPS内容加密</div>
+                                                </div>
+                                            </div>
+                                            <div class="capture-type-item" data-type="proxy">
+                                                <div class="capture-type-radio"></div>
+                                                <div class="capture-type-info">
+                                                    <div class="capture-type-name">代理抓包 (mitmproxy)</div>
+                                                    <div class="capture-type-desc">启动本地代理服务器，手机配置代理后可捕获HTTPS明文流量，需安装CA证书</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 全流量抓包目标选择 (仅全流量抓包时显示) -->
+                                    <div class="capture-realtime-target hidden" id="capture-realtime-target">
+                                        <div class="section-title">抓包目标</div>
+                                        <div class="capture-target-row">
+                                            <select id="realtime-target-select" class="capture-select">
+                                                <option value="all">整个设备流量</option>
+                                                <option value="current">当前APK</option>
+                                                <option value="device">设备上的APP</option>
+                                            </select>
+                                            <div class="realtime-device-apps" id="realtime-device-apps" style="display: none;">
+                                                <select id="realtime-app-select" class="capture-select">
+                                                    <option value="">请选择应用...</option>
+                                                </select>
+                                                <button class="capture-refresh-btn" id="realtime-refresh-apps-btn">刷新</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 代理设置 (仅代理抓包时显示) -->
+                                    <div class="capture-proxy-settings hidden" id="capture-proxy-settings">
+                                        <div class="section-title">代理设置</div>
+                                        <!-- mitmproxy环境状态 -->
+                                        <div class="proxy-env-status" id="proxy-env-status">
+                                            <div class="proxy-env-item">
+                                                <span class="proxy-env-icon" id="proxy-env-icon">⚪</span>
+                                                <span class="proxy-env-label">mitmproxy环境:</span>
+                                                <span class="proxy-env-value" id="proxy-env-value">检测中...</span>
+                                            </div>
+                                            <button class="proxy-env-btn" id="proxy-install-mitmproxy-btn" style="display: none;">安装mitmproxy</button>
+                                        </div>
+                                        <div class="proxy-settings-row">
+                                            <label class="proxy-setting-label">监听端口:</label>
+                                            <input type="number" id="proxy-port" class="proxy-port-input" value="8080" min="1024" max="65535">
+                                        </div>
+                                        <div class="proxy-settings-row">
+                                            <label class="proxy-setting-label">本机IP:</label>
+                                            <span class="proxy-local-ip" id="proxy-local-ip">获取中...</span>
+                                            <button class="proxy-copy-btn" id="proxy-copy-ip-btn" title="复制IP">复制</button>
+                                        </div>
+                                        <div class="proxy-settings-tips">
+                                            <div class="proxy-tip">1. 确保手机和电脑在同一局域网</div>
+                                            <div class="proxy-tip">2. 手机WiFi设置代理: <span class="proxy-tip-highlight" id="proxy-tip-addr">IP:8080</span></div>
+                                            <div class="proxy-tip">3. 首次使用需安装CA证书到手机</div>
+                                        </div>
+                                        <div class="proxy-cert-actions">
+                                            <button class="proxy-cert-btn" id="proxy-export-cert-btn">导出CA证书</button>
+                                            <button class="proxy-cert-btn" id="proxy-install-cert-btn">推送证书到设备</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- 抓包目标选择 -->
+                                    <div class="capture-target-section">
+                                        <div class="section-title">抓包目标</div>
+                                        <div class="capture-target-row">
                                             <select id="capture-target-select" class="capture-select">
                                                 <option value="current">当前APK</option>
                                                 <option value="device">设备上的APP</option>
                                             </select>
-                                        </div>
-                                        <div class="capture-device-apps" id="capture-device-apps" style="display: none;">
-                                            <select id="device-app-select" class="capture-select">
-                                                <option value="">请选择应用...</option>
-                                            </select>
-                                            <button class="capture-refresh-btn" id="refresh-apps-btn">刷新</button>
+                                            <div class="capture-device-apps" id="capture-device-apps" style="display: none;">
+                                                <select id="device-app-select" class="capture-select">
+                                                    <option value="">请选择应用...</option>
+                                                </select>
+                                                <button class="capture-refresh-btn" id="refresh-apps-btn">刷新</button>
+                                            </div>
                                         </div>
                                         <div class="capture-options">
                                             <label class="capture-checkbox">
@@ -239,61 +387,127 @@
                                                 <span>Spawn模式（重启APP）</span>
                                             </label>
                                         </div>
-                                        <div class="capture-actions">
-                                            <button class="capture-start-btn" id="start-capture-btn" disabled>开始抓包</button>
-                                            <button class="capture-stop-btn" id="stop-capture-btn" disabled>停止抓包</button>
+                                    </div>
+
+                                    <!-- 辅助脚本选择 -->
+                                    <div class="capture-scripts-section">
+                                        <div class="section-title">
+                                            <span>辅助脚本</span>
+                                            <button class="section-action-btn" id="add-aux-script-btn" title="添加自定义脚本">+ 添加</button>
+                                        </div>
+                                        <div class="capture-scripts-categories" id="capture-scripts-categories">
+                                            <!-- 脚本分类列表将由JS动态生成 -->
+                                            <div class="capture-scripts-loading">加载脚本中...</div>
                                         </div>
                                     </div>
-                                    <!-- 抓包会话列表 -->
-                                    <div class="capture-sessions">
-                                        <div class="capture-sessions-header">
-                                            <span>抓包记录</span>
-                                            <button class="capture-refresh-btn" id="refresh-sessions-btn">刷新</button>
-                                        </div>
-                                        <div class="capture-sessions-list" id="capture-sessions-list">
-                                            <div class="capture-placeholder">暂无抓包记录</div>
-                                        </div>
+
+                                </div>
+                                <!-- 底部操作栏 - 移到container外面 -->
+                                <div class="capture-setup-footer">
+                                    <button class="capture-history-btn" id="capture-history-btn">查看抓包记录</button>
+                                    <button class="capture-start-main-btn" id="start-capture-main-btn" disabled>开始抓包</button>
+                                </div>
+                            </div>
+
+                            <!-- 页面2：抓包进行中页面 -->
+                            <div class="capture-running-page hidden" id="capture-running-page">
+                                <div class="capture-running-header">
+                                    <button class="capture-back-btn" id="capture-back-btn" title="返回">← 返回</button>
+                                    <div class="capture-running-info">
+                                        <span class="capture-running-type" id="capture-running-type">r0capture</span>
+                                        <span class="capture-running-target" id="capture-running-target">com.example.app</span>
+                                        <span class="capture-running-status" id="capture-running-status">抓包中...</span>
+                                    </div>
+                                    <button class="capture-stop-btn" id="stop-capture-btn">停止抓包</button>
+                                </div>
+                                <!-- 全流量抓包统计栏 -->
+                                <div class="capture-stats-bar hidden" id="capture-stats-bar">
+                                    <div class="capture-stat-item" data-filter="all">
+                                        <span class="stat-label">全部</span>
+                                        <span class="stat-count" id="stat-total">0</span>
+                                    </div>
+                                    <div class="capture-stat-item" data-filter="TCP">
+                                        <span class="stat-label">TCP</span>
+                                        <span class="stat-count" id="stat-tcp">0</span>
+                                    </div>
+                                    <div class="capture-stat-item" data-filter="UDP">
+                                        <span class="stat-label">UDP</span>
+                                        <span class="stat-count" id="stat-udp">0</span>
+                                    </div>
+                                    <div class="capture-stat-item" data-filter="HTTP">
+                                        <span class="stat-label">HTTP</span>
+                                        <span class="stat-count" id="stat-http">0</span>
+                                    </div>
+                                    <div class="capture-stat-item" data-filter="HTTPS">
+                                        <span class="stat-label">HTTPS</span>
+                                        <span class="stat-count" id="stat-https">0</span>
+                                    </div>
+                                    <div class="capture-stat-item" data-filter="DNS">
+                                        <span class="stat-label">DNS</span>
+                                        <span class="stat-count" id="stat-dns">0</span>
                                     </div>
                                 </div>
-                                <!-- 分割线 -->
-                                <div class="capture-resizer" id="capture-resizer"></div>
-                                <!-- 右侧数据包查看器 -->
-                                <div class="capture-right">
-                                    <div class="capture-packets-header">
-                                        <span class="packets-title" id="packets-title">数据包列表</span>
-                                        <div class="packets-filter">
-                                            <input type="text" id="packets-filter-input" class="packets-filter-input" placeholder="过滤: 方法、URL、状态码...">
+                                <div class="capture-running-content">
+                                    <!-- 左侧：数据包列表 -->
+                                    <div class="capture-packets-left">
+                                        <div class="capture-packets-header">
+                                            <span class="packets-title" id="packets-title">数据包列表 (0)</span>
+                                            <div class="packets-filter">
+                                                <input type="text" id="packets-filter-input" class="packets-filter-input" placeholder="过滤...">
+                                            </div>
+                                        </div>
+                                        <!-- HTTP抓包表格 -->
+                                        <div class="capture-packets-table-wrapper" id="http-packets-wrapper">
+                                            <table class="capture-packets-table" id="capture-packets-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="col-no">#</th>
+                                                        <th class="col-time">时间</th>
+                                                        <th class="col-method">方法</th>
+                                                        <th class="col-host">主机</th>
+                                                        <th class="col-path">路径</th>
+                                                        <th class="col-status">状态</th>
+                                                        <th class="col-size">大小</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="capture-packets-body">
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <!-- 全流量抓包表格 -->
+                                        <div class="capture-packets-table-wrapper hidden" id="realtime-packets-wrapper">
+                                            <table class="capture-packets-table realtime-table" id="realtime-packets-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="col-no">#</th>
+                                                        <th class="col-time">时间</th>
+                                                        <th class="col-protocol">协议</th>
+                                                        <th class="col-direction">方向</th>
+                                                        <th class="col-src">源地址</th>
+                                                        <th class="col-dst">目的地址</th>
+                                                        <th class="col-length">长度</th>
+                                                        <th class="col-info">信息</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="realtime-packets-body">
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="capture-packets-placeholder" id="capture-packets-placeholder">
+                                            <span>等待数据包...</span>
                                         </div>
                                     </div>
-                                    <div class="capture-packets-table-wrapper">
-                                        <table class="capture-packets-table" id="capture-packets-table">
-                                            <thead>
-                                                <tr>
-                                                    <th class="col-no">#</th>
-                                                    <th class="col-time">时间</th>
-                                                    <th class="col-method">方法</th>
-                                                    <th class="col-host">主机</th>
-                                                    <th class="col-path">路径</th>
-                                                    <th class="col-status">状态</th>
-                                                    <th class="col-size">大小</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="capture-packets-body">
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <div class="capture-packets-placeholder" id="capture-packets-placeholder">
-                                        <span>选择左侧抓包记录查看数据包</span>
-                                    </div>
-                                    <!-- 数据包详情 -->
-                                    <div class="capture-packet-detail" id="capture-packet-detail">
+                                    <!-- 分割线 -->
+                                    <div class="capture-resizer" id="capture-resizer"></div>
+                                    <!-- 右侧：数据包详情 -->
+                                    <div class="capture-packets-right">
                                         <div class="packet-detail-tabs">
                                             <button class="packet-detail-tab active" data-tab="request">请求</button>
                                             <button class="packet-detail-tab" data-tab="response">响应</button>
                                             <button class="packet-detail-tab" data-tab="hex">十六进制</button>
                                         </div>
                                         <div class="packet-detail-content" id="packet-detail-content">
-                                            <div class="packet-detail-placeholder">点击上方数据包查看详情</div>
+                                            <div class="packet-detail-placeholder">点击左侧数据包查看详情</div>
                                         </div>
                                     </div>
                                 </div>
@@ -585,6 +799,162 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 抓包记录弹出层 -->
+    <div id="capture-history-overlay" class="fullscreen-overlay hidden">
+        <div class="capture-history-container">
+            <div class="capture-history-header">
+                <div class="capture-history-title">抓包记录</div>
+                <div class="capture-history-actions">
+                    <button id="capture-history-refresh-btn" class="capture-history-action-btn" title="刷新">刷新</button>
+                    <button id="capture-history-close-btn" class="overlay-close-btn" title="关闭">✕</button>
+                </div>
+            </div>
+            <div class="capture-history-content">
+                <!-- 左侧：会话列表 -->
+                <div class="capture-history-left">
+                    <div class="capture-history-filter">
+                        <select id="capture-history-type-filter" class="capture-history-select">
+                            <option value="all">全部类型</option>
+                            <option value="r0capture">r0capture</option>
+                            <option value="tcpdump">tcpdump</option>
+                        </select>
+                    </div>
+                    <div class="capture-history-sessions" id="capture-history-sessions">
+                        <div class="capture-history-placeholder">暂无抓包记录</div>
+                    </div>
+                </div>
+                <!-- 分割线 -->
+                <div class="capture-history-resizer" id="capture-history-resizer"></div>
+                <!-- 右侧：数据包查看 -->
+                <div class="capture-history-right">
+                    <div class="capture-history-packets-header">
+                        <span class="capture-history-packets-title" id="capture-history-packets-title">数据包列表</span>
+                        <div class="capture-history-packets-actions">
+                            <input type="text" id="capture-history-filter-input" class="packets-filter-input" placeholder="过滤...">
+                            <button id="capture-history-export-btn" class="capture-history-action-btn" title="在文件夹中打开">打开目录</button>
+                        </div>
+                    </div>
+                    <div class="capture-history-packets-table-wrapper" id="capture-history-packets-table-wrapper">
+                        <table class="capture-packets-table" id="capture-history-packets-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-no">#</th>
+                                    <th class="col-time">时间</th>
+                                    <th class="col-method">方法</th>
+                                    <th class="col-host">主机</th>
+                                    <th class="col-path">路径</th>
+                                    <th class="col-status">状态</th>
+                                    <th class="col-size">大小</th>
+                                </tr>
+                            </thead>
+                            <tbody id="capture-history-packets-body">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="capture-history-packets-placeholder" id="capture-history-packets-placeholder">
+                        <span>选择左侧抓包记录查看数据包</span>
+                    </div>
+                    <!-- 垂直分割线（上下拖动） -->
+                    <div class="capture-history-v-resizer" id="capture-history-v-resizer"></div>
+                    <!-- 数据包详情 -->
+                    <div class="capture-history-packet-detail" id="capture-history-packet-detail">
+                        <div class="packet-detail-tabs">
+                            <button class="packet-detail-tab active" data-tab="request">请求</button>
+                            <button class="packet-detail-tab" data-tab="response">响应</button>
+                            <button class="packet-detail-tab" data-tab="hex">十六进制</button>
+                        </div>
+                        <!-- 全流量抓包的横向Tab详情 -->
+                        <div class="realtime-detail-tabs" id="capture-history-realtime-tabs" style="display: none;">
+                            <button class="realtime-detail-tab active" data-tab="info">基本信息</button>
+                            <button class="realtime-detail-tab" data-tab="payload">Payload</button>
+                            <button class="realtime-detail-tab" data-tab="hex">Hex Dump</button>
+                            <button class="realtime-detail-tab" data-tab="raw">Raw</button>
+                        </div>
+                        <div class="packet-detail-content" id="capture-history-packet-detail-content">
+                            <div class="packet-detail-placeholder">点击上方数据包查看详情</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 辅助脚本保存对话框 -->
+    <div id="aux-script-save-dialog" class="modal-overlay hidden">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <span class="modal-title">添加辅助脚本</span>
+                <button class="modal-close-btn" id="aux-script-dialog-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-script-path" id="aux-script-path-display"></div>
+                <p class="modal-question">是否保存到脚本列表？</p>
+                <p class="modal-desc">保存后可以在辅助脚本列表中长期使用</p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" id="aux-use-temp-btn">仅本次使用</button>
+                <button class="modal-btn modal-btn-primary" id="aux-save-permanent-btn">保存到列表</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 辅助脚本信息填写对话框 -->
+    <div id="aux-script-info-dialog" class="modal-overlay hidden">
+        <div class="modal-dialog modal-dialog-wide">
+            <div class="modal-header">
+                <span class="modal-title">填写脚本信息</span>
+                <button class="modal-close-btn" id="aux-script-info-dialog-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-form">
+                    <div class="modal-form-group">
+                        <label class="modal-label">脚本名称 <span class="required">*</span></label>
+                        <input type="text" class="modal-input" id="aux-script-name" placeholder="例如：绕过微信检测">
+                    </div>
+                    <div class="modal-form-group">
+                        <label class="modal-label">脚本ID <span class="required">*</span></label>
+                        <input type="text" class="modal-input" id="aux-script-id" placeholder="例如：wechat_bypass（英文，无空格）">
+                    </div>
+                    <div class="modal-form-group">
+                        <label class="modal-label">描述</label>
+                        <textarea class="modal-textarea" id="aux-script-desc" placeholder="脚本功能描述..."></textarea>
+                    </div>
+                    <div class="modal-form-group">
+                        <label class="modal-label">分类</label>
+                        <select class="modal-select" id="aux-script-category">
+                            <option value="bypass">绕过检测</option>
+                            <option value="traffic">流量控制</option>
+                            <option value="intercept">行为拦截</option>
+                            <option value="helper">应用辅助</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" id="aux-info-cancel-btn">取消</button>
+                <button class="modal-btn modal-btn-primary" id="aux-info-save-btn">保存脚本</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 返回抓包确认对话框 -->
+    <div id="capture-back-confirm-dialog" class="modal-overlay hidden">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <span class="modal-title">确认返回</span>
+                <button class="modal-close-btn" id="capture-back-dialog-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-question">当前正在抓包，返回将停止抓包</p>
+                <p class="modal-desc">确定要停止抓包并返回吗？</p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" id="capture-back-cancel-btn">取消</button>
+                <button class="modal-btn modal-btn-primary" id="capture-back-confirm-btn">停止并返回</button>
             </div>
         </div>
     </div>

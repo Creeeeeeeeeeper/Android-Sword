@@ -1,0 +1,137 @@
+.proxy-cert-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.proxy-cert-btn {
+    background: #374151;
+    border: 1px solid #4b5563;
+    border-radius: 6px;
+    padding: 8px 16px;
+    color: #e5e7eb;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.proxy-cert-btn:hover {
+    background: #4b5563;
+    border-color: #6b7280;
+}
+
+/* ========== mitmproxy环境状态样式 ========== */
+.proxy-env-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #1f2128;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+}
+
+.proxy-env-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.proxy-env-icon {
+    font-size: 14px;
+}
+
+.proxy-env-label {
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+.proxy-env-value {
+    color: #e5e7eb;
+    font-size: 13px;
+}
+
+.proxy-env-value.ready {
+    color: #34d399;
+}
+
+.proxy-env-value.error {
+    color: #f87171;
+}
+
+.proxy-env-value.loading {
+    color: #fbbf24;
+}
+
+.proxy-env-btn {
+    background: #3b82f6;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 14px;
+    color: #fff;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.proxy-env-btn:hover {
+    background: #2563eb;
+}
+
+.proxy-env-btn:disabled {
+    background: #4b5563;
+    cursor: not-allowed;
+}
+
+.proxy-env-btn.installing {
+    background: #f59e0b;
+}
+
+/* ===================== 全流量抓包样式 ===================== */
+
+/* 统计栏 */
+.capture-stats-bar {
+    display: flex;
+    gap: 8px;
+    padding: 10px 15px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.capture-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.capture-stat-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.capture-stat-item.active {
+    background: rgba(59, 130, 246, 0.3);
+    border-color: #3b82f6;
+}
+
+.capture-stat-item .stat-label {
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.capture-stat-item .stat-count {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    min-width: 20px;
+    text-align: center;
+}
+
+.capture-stat-item[data-filter="TCP"] .stat-count {
+    color: #60a5fa;
+}

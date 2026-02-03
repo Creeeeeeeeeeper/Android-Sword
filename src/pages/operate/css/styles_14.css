@@ -1,0 +1,129 @@
+.search-header-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    flex-shrink: 0;
+    min-width: 40px;
+}
+
+.search-input-wrapper {
+    flex: 0 1 500px;
+    position: relative;
+    max-width: 500px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 80px 10px 16px;
+    background: #3c3c3c;
+    border: 1px solid #5a5a5a;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.search-input:focus {
+    border-color: rgba(100, 150, 255, 0.6);
+}
+
+.search-input::placeholder {
+    color: #888888;
+}
+
+.search-count {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: #888888;
+}
+
+.search-content {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.search-results-panel {
+    width: 400px;
+    min-width: 250px;
+    max-width: 600px;
+    background: #252526;
+    border-right: 1px solid #3d3d3d;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.search-results-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.search-results-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.search-results-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.search-results-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.search-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666666;
+    font-size: 14px;
+}
+
+.search-result-item {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.search-result-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.search-result-item.selected {
+    background: rgba(100, 150, 255, 0.2);
+}
+
+.search-result-file {
+    font-size: 12px;
+    color: #888888;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.search-result-line {
+    font-size: 11px;
+    color: #666666;
+    margin-bottom: 4px;
+}
+
+.search-result-content {
+    font-size: 13px;
+    color: #cccccc;
+    font-family: 'Consolas', 'Monaco', monospace;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 2px 0;
+}
+
+.search-result-content::-webkit-scrollbar {
+    height: 4px;
+}

@@ -1,0 +1,152 @@
+.env-status-item.loading .status-icon {
+    color: #ffb74d;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.capture-init-btn {
+    padding: 6px 12px;
+    background: rgba(100, 150, 255, 0.2);
+    border: 1px solid rgba(100, 150, 255, 0.4);
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.capture-init-btn:hover:not(:disabled) {
+    background: rgba(100, 150, 255, 0.3);
+}
+
+.capture-init-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 抓包控制区 */
+.capture-control {
+    padding: 12px;
+    border-bottom: 1px solid #3d3d3d;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.capture-target {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.capture-target label {
+    font-size: 12px;
+    color: #888888;
+    white-space: nowrap;
+}
+
+.capture-select {
+    flex: 1;
+    padding: 6px 10px;
+    background: #3c3c3c;
+    border: 1px solid #5a5a5a;
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+    max-width: 200px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.capture-select:hover {
+    border-color: #6a6a6a;
+}
+
+.capture-select:focus {
+    border-color: rgba(100, 150, 255, 0.6);
+}
+
+.capture-device-apps {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.capture-refresh-btn {
+    padding: 5px 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: #cccccc;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.capture-refresh-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.capture-options {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.capture-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #cccccc;
+    cursor: pointer;
+    user-select: none;
+}
+
+.capture-checkbox input {
+    cursor: pointer;
+}
+
+.capture-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.capture-start-btn {
+    flex: 1;
+    padding: 8px 16px;
+    background: rgba(76, 175, 80, 0.25);
+    border: 1px solid rgba(76, 175, 80, 0.5);
+    border-radius: 4px;
+    color: #4CAF50;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.capture-start-btn:hover:not(:disabled) {
+    background: rgba(76, 175, 80, 0.35);
+}
+
+.capture-start-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

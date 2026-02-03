@@ -1,0 +1,169 @@
+.sensitive-code-path {
+    padding: 8px 12px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #3d3d3d;
+    font-size: 12px;
+    color: #888888;
+    font-family: 'Consolas', 'Monaco', monospace;
+    flex-shrink: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sensitive-code-content {
+    flex: 1;
+    overflow: auto;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.sensitive-code-content::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.sensitive-code-content::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+.sensitive-code-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+}
+
+.sensitive-code-content::-webkit-scrollbar-corner {
+    background: #1e1e1e;
+}
+
+.sensitive-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 12px;
+    color: #888888;
+    font-size: 14px;
+}
+
+.sensitive-loading .spinner {
+    width: 24px;
+    height: 24px;
+}
+
+/* 敏感信息高亮样式 */
+.sensitive-highlight {
+    background: rgba(255, 200, 0, 0.3);
+    border-radius: 2px;
+    padding: 1px 2px;
+}
+
+/* ========== 总览面板样式 ========== */
+.overview-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 8px;
+}
+
+.overview-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.overview-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+.overview-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+/* 左右两列的包装器 */
+.overview-columns {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+}
+
+/* 基本信息区块 - 占据整行，固定高度 */
+.overview-basic-info {
+    width: 100%;
+    height: 65px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+}
+
+.overview-basic-info .overview-section-header {
+    min-width: 80px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    border-bottom: none;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.overview-basic-info-content {
+    padding: 0 16px;
+    flex: 1;
+}
+
+.basic-info-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+}
+
+.basic-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.basic-info-label {
+    font-size: 12px;
+    color: #888888;
+}
+
+.basic-info-value {
+    font-size: 13px;
+    color: #ffffff;
+    font-family: 'Consolas', 'Monaco', monospace;
+    word-break: break-all;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.overview-column {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.overview-left {
+    flex: 1;
+    min-width: 0;
+}
+
+.overview-right {
+    flex: 1;
+    min-width: 0;
+}

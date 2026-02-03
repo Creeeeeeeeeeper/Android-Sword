@@ -1,0 +1,51 @@
+.overlay-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+.overlay-close-btn:hover {
+    color: var(--text-primary);
+}
+
+/* ===================== 修复CSS变量问题 ===================== */
+/* 由于原CSS未使用变量，这里用实际颜色覆盖 */
+
+.capture-setup-page,
+.capture-running-page,
+.capture-history-container,
+.modal-dialog {
+    background: #2a2d36 !important;
+}
+
+.capture-type-section,
+.capture-target-section,
+.capture-scripts-section,
+.capture-packets-header,
+.capture-history-header,
+.modal-header,
+.modal-footer,
+.packet-detail-tabs {
+    background: #1e2028 !important;
+}
+
+.capture-type-item,
+.capture-scripts-category-header,
+.capture-history-select,
+.packets-filter-input,
+.modal-input,
+.modal-textarea,
+.modal-select {
+    background: #2a2d36 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+.capture-type-item:hover,
+.capture-script-item:hover,
+.capture-history-session:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+}

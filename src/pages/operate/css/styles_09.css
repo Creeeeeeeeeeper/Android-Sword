@@ -1,0 +1,159 @@
+/* 详细信息面板样式 */
+.details-container {
+    height: 100%;
+    width: 100%;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.details-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.details-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+.details-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.details-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 100%;
+    width: 100%;
+    color: #888888;
+    font-size: 14px;
+}
+
+.details-loading .spinner {
+    width: 20px;
+    height: 20px;
+}
+
+.details-section {
+    margin-bottom: 20px;
+}
+
+.details-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.details-hash-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.details-hash-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+}
+
+.hash-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #888888;
+    min-width: 60px;
+    flex-shrink: 0;
+}
+
+.hash-value {
+    font-size: 12px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: #cccccc;
+    word-break: break-all;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.hash-value:hover {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
+.details-error {
+    padding: 12px;
+    background: rgba(244, 67, 54, 0.15);
+    border: 1px solid rgba(244, 67, 54, 0.3);
+    border-radius: 6px;
+    color: #f44336;
+    font-size: 13px;
+}
+
+.details-empty {
+    padding: 20px;
+    text-align: center;
+    color: #666666;
+    font-size: 13px;
+}
+
+/* 四大组件样式 */
+.components-section {
+    position: relative;
+}
+
+.components-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.component-group {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+/* 展开状态时，限制高度并启用滚动，让 header 可以 sticky */
+.component-group:has(.component-content:not(.collapsed)) {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* 自定义滚动条样式 */
+.component-group::-webkit-scrollbar {
+    width: 6px;
+}
+
+.component-group::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+.component-group::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.component-group::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.component-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+    position: sticky;
+    top: 0;
+    background: rgb(30, 30, 30);
+    z-index: 1;
+}

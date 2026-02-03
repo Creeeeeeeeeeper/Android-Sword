@@ -1,0 +1,137 @@
+.sensitive-item.number {
+    border-left-color: #9575cd;
+}
+
+.sensitive-item-content {
+    font-size: 13px;
+    color: #ffffff;
+    font-family: 'Consolas', 'Monaco', monospace;
+    margin-bottom: 6px;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.sensitive-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: #888888;
+    overflow: hidden;
+    max-width: 100%;
+}
+
+.sensitive-item-category {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.sensitive-item-category.url {
+    background: rgba(79, 195, 247, 0.2);
+    color: #4fc3f7;
+}
+
+.sensitive-item-category.ip {
+    background: rgba(129, 199, 132, 0.2);
+    color: #81c784;
+}
+
+.sensitive-item-category.access_key {
+    background: rgba(244, 67, 54, 0.2);
+    color: #f44336;
+}
+
+.sensitive-item-category.base64 {
+    background: rgba(255, 183, 77, 0.2);
+    color: #ffb74d;
+}
+
+.sensitive-item-category.number {
+    background: rgba(149, 117, 205, 0.2);
+    color: #9575cd;
+}
+
+.sensitive-item-file {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #888888;
+    min-width: 0;
+}
+
+.sensitive-item-line {
+    flex-shrink: 0;
+    font-size: 10px;
+    color: #666666;
+}
+
+.sensitive-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    background: #2d2d2d;
+    border-top: 1px solid #3d3d3d;
+    flex-shrink: 0;
+}
+
+.sensitive-page-btn {
+    width: 28px;
+    height: 24px;
+    background: #3c3c3c;
+    border: 1px solid #5a5a5a;
+    border-radius: 4px;
+    color: #cccccc;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.sensitive-page-btn:hover:not(:disabled) {
+    background: #4a4a4a;
+    border-color: #6a6a6a;
+}
+
+.sensitive-page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.sensitive-page-info {
+    font-size: 12px;
+    color: #cccccc;
+    min-width: 80px;
+    text-align: center;
+}
+
+.sensitive-resizer {
+    width: 4px;
+    background: transparent;
+    cursor: col-resize;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.sensitive-resizer:hover,
+.sensitive-resizer.active {
+    background: rgba(100, 150, 255, 0.5);
+}
+
+.sensitive-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #1e1e1e;
+}

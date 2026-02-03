@@ -1,0 +1,163 @@
+/* 数据包详情 */
+.capture-packet-detail {
+    height: 250px;
+    min-height: 150px;
+    border-top: 1px solid #3d3d3d;
+    display: flex;
+    flex-direction: column;
+    display: none;
+}
+
+.capture-packet-detail.visible {
+    display: flex;
+}
+
+.packet-detail-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 8px 12px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #3d3d3d;
+}
+
+.packet-detail-tab {
+    padding: 6px 14px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.packet-detail-tab:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.packet-detail-tab.active {
+    color: #ffffff;
+    background: rgba(100, 150, 255, 0.3);
+}
+
+.packet-detail-content {
+    flex: 1;
+    overflow: auto;
+    padding: 12px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #cccccc;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.packet-detail-content::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.packet-detail-content::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+.packet-detail-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.packet-detail-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666666;
+    font-family: Arial, sans-serif;
+}
+
+/* 请求/响应头样式 */
+.http-first-line {
+    color: #4fc3f7;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.http-header-name {
+    color: #81c784;
+}
+
+.http-header-value {
+    color: #cccccc;
+}
+
+.http-body-label {
+    color: #ffb74d;
+    margin-top: 12px;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+/* 十六进制视图样式 */
+.packet-hex-view {
+    white-space: pre;
+    word-break: normal;
+    overflow-x: auto;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #b0b0b0;
+}
+
+.packet-hex-view .hex-line {
+    display: block;
+}
+
+.packet-hex-view .hex-offset {
+    color: #6a9955;
+}
+
+.packet-hex-view .hex-bytes {
+    color: #9cdcfe;
+}
+
+.packet-hex-view .hex-ascii {
+    color: #ce9178;
+}
+
+/* ========== 全屏加载蒙层样式 ========== */
+.fullscreen-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(30, 32, 40, 0.85);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease;
+}
+
+.fullscreen-loading.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.fullscreen-loading-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.fullscreen-loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-top-color: rgba(100, 150, 255, 0.9);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}

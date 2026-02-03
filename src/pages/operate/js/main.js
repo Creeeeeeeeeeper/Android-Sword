@@ -280,7 +280,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.SensitiveModule.refresh();
                 break;
             case 'capture':
-                window.CaptureModule.loadSessions();
+                window.CaptureModule.loadAuxScripts();
+                window.CaptureModule.checkFridaEnv();
                 break;
             case 'frida':
                 // Frida模块不需要每次切换都加载

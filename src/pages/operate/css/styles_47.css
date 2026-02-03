@@ -1,0 +1,123 @@
+.capture-running-target {
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.capture-running-status {
+    color: var(--success-color);
+    font-size: 13px;
+}
+
+.capture-running-content {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.capture-packets-left {
+    width: 55%;
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-color);
+}
+
+.capture-packets-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 300px;
+}
+
+.capture-packets-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.packets-title {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.packets-filter {
+    flex: 1;
+    max-width: 200px;
+    margin-left: 12px;
+}
+
+.packets-filter-input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 12px;
+}
+
+.capture-packets-table-wrapper {
+    flex: 1;
+    overflow: auto;
+}
+
+.capture-packets-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+/* 数据包表格 */
+.capture-packets-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.capture-packets-table th,
+.capture-packets-table td {
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.capture-packets-table th {
+    background: var(--bg-secondary);
+    font-weight: 500;
+    color: var(--text-secondary);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.capture-packets-table .packet-row {
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.capture-packets-table .packet-row:hover {
+    background: var(--bg-hover);
+}
+
+.capture-packets-table .packet-row.selected {
+    background: rgba(59, 130, 246, 0.15);
+}
+
+.col-no {
+    width: 40px;
+}
+
+.col-time {
+    width: 80px;
+}
+
+.col-method {
+    width: 60px;
+}

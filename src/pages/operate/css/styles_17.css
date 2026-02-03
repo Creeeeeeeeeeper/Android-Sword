@@ -1,0 +1,135 @@
+.hex-scroll-area::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+.hex-scroll-area::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+}
+
+.hex-scroll-area::-webkit-scrollbar-corner {
+    background: #1e1e1e;
+}
+
+.hex-table {
+    border-collapse: collapse;
+    white-space: nowrap;
+}
+
+.hex-row {
+    height: 20px;
+}
+
+.hex-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.hex-cell {
+    padding: 0 12px;
+    vertical-align: middle;
+}
+
+.hex-bytes {
+    color: #9cdcfe;
+    letter-spacing: 0.5px;
+}
+
+.hex-ascii {
+    color: #ce9178;
+    border-left: 1px solid #3d3d3d;
+    padding-left: 16px;
+}
+
+/* ========== 图片查看器样式 ========== */
+.image-viewer-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    background: #1e1e1e;
+}
+
+/* ========== 媒体查看器通用样式 ========== */
+.media-viewer-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    background: #1e1e1e;
+}
+
+.media-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #3d3d3d;
+    flex-shrink: 0;
+}
+
+.media-info {
+    font-size: 12px;
+    color: #888888;
+    display: flex;
+    align-items: center;
+}
+
+.media-size-info {
+    color: #aaaaaa;
+}
+
+.media-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.media-control-btn {
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    background: #3c3c3c;
+    border: 1px solid #5a5a5a;
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.media-control-btn:hover {
+    background: #4c4c4c;
+    border-color: #6a6a6a;
+}
+
+.media-control-btn:active {
+    background: #5c5c5c;
+}
+
+.media-mode-btn {
+    background: rgba(100, 150, 255, 0.2);
+    border-color: rgba(100, 150, 255, 0.4);
+}
+
+.media-mode-btn:hover {
+    background: rgba(100, 150, 255, 0.3);
+    border-color: rgba(100, 150, 255, 0.6);
+}
+
+.media-divider {
+    width: 1px;
+    height: 20px;
+    background: #5a5a5a;
+    margin: 0 4px;
+}
+
+.media-zoom-level {
+    font-size: 12px;
+    color: #cccccc;
+    min-width: 50px;
+    text-align: center;
+}

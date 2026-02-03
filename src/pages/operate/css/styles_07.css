@@ -1,0 +1,265 @@
+/* 签名|特权 - 深紫色 */
+.permission-item.permission-level-signature-privileged {
+    border-left-color: #673ab7;
+    background: rgba(103, 58, 183, 0.08);
+}
+
+.permission-item.permission-level-signature-privileged:hover {
+    background: rgba(103, 58, 183, 0.12);
+}
+
+/* 签名|特权|开发 - 靛蓝色 */
+.permission-item.permission-level-signature-dev {
+    border-left-color: #3f51b5;
+    background: rgba(63, 81, 181, 0.08);
+}
+
+.permission-item.permission-level-signature-dev:hover {
+    background: rgba(63, 81, 181, 0.12);
+}
+
+/* 签名|特权|应用操作 - 蓝绿色 */
+.permission-item.permission-level-signature-privileged-appop {
+    border-left-color: #009688;
+    background: rgba(0, 150, 136, 0.08);
+}
+
+.permission-item.permission-level-signature-privileged-appop:hover {
+    background: rgba(0, 150, 136, 0.12);
+}
+
+/* 签名|应用操作 - 青色 */
+.permission-item.permission-level-signature-appop {
+    border-left-color: #00bcd4;
+    background: rgba(0, 188, 212, 0.08);
+}
+
+.permission-item.permission-level-signature-appop:hover {
+    background: rgba(0, 188, 212, 0.12);
+}
+
+/* 签名|预装|已知签名者|角色 - 蓝灰色 */
+.permission-item.permission-level-signature-preinstalled {
+    border-left-color: #607d8b;
+    background: rgba(96, 125, 139, 0.08);
+}
+
+.permission-item.permission-level-signature-preinstalled:hover {
+    background: rgba(96, 125, 139, 0.12);
+}
+
+/* 内部|角色 - 棕色 */
+.permission-item.permission-level-internal-role {
+    border-left-color: #795548;
+    background: rgba(121, 85, 72, 0.08);
+}
+
+.permission-item.permission-level-internal-role:hover {
+    background: rgba(121, 85, 72, 0.12);
+}
+
+/* 内部|特权 - 深棕色 */
+.permission-item.permission-level-internal-privileged {
+    border-left-color: #8d6e63;
+    background: rgba(93, 64, 55, 0.08);
+}
+
+.permission-item.permission-level-internal-privileged:hover {
+    background: rgba(93, 64, 55, 0.12);
+}
+
+/* 普通权限 - 绿色 */
+.permission-item.permission-level-normal {
+    border-left-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.08);
+}
+
+.permission-item.permission-level-normal:hover {
+    background: rgba(76, 175, 80, 0.12);
+}
+
+/* 普通|即时 - 浅绿色 */
+.permission-item.permission-level-normal-instant {
+    border-left-color: #8bc34a;
+    background: rgba(139, 195, 74, 0.08);
+}
+
+.permission-item.permission-level-normal-instant:hover {
+    background: rgba(139, 195, 74, 0.12);
+}
+
+/* 普通|应用操作|即时 - 黄绿色 */
+.permission-item.permission-level-normal-appop {
+    border-left-color: #cddc39;
+    background: rgba(205, 220, 57, 0.08);
+}
+
+.permission-item.permission-level-normal-appop:hover {
+    background: rgba(205, 220, 57, 0.12);
+}
+
+/* 其他权限 - 橙黄色 */
+.permission-item.permission-level-other {
+    border-left-color: #ff9800;
+    background: rgba(255, 152, 0, 0.08);
+}
+
+.permission-item.permission-level-other:hover {
+    background: rgba(255, 152, 0, 0.12);
+}
+
+.permission-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.permission-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.permission-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* 危险 - 红色 */
+.permission-badge.dangerous {
+    background: rgba(244, 67, 54, 0.25);
+    color: #f44336;
+}
+
+/* 签名 - 紫色 */
+.permission-badge.signature {
+    background: rgba(156, 39, 176, 0.25);
+    color: #9c27b0;
+}
+
+/* 签名|特权 - 深紫色 */
+.permission-badge.signature-privileged {
+    background: rgba(103, 58, 183, 0.25);
+    color: #673ab7;
+}
+
+/* 签名|特权|开发 - 靛蓝色 */
+.permission-badge.signature-dev {
+    background: rgba(63, 81, 181, 0.25);
+    color: #3f51b5;
+}
+
+/* 签名|特权|应用操作 - 蓝绿色 */
+.permission-badge.signature-privileged-appop {
+    background: rgba(0, 150, 136, 0.25);
+    color: #009688;
+}
+
+/* 签名|应用操作 - 青色 */
+.permission-badge.signature-appop {
+    background: rgba(0, 188, 212, 0.25);
+    color: #00bcd4;
+}
+
+/* 签名|预装|已知签名者|角色 - 蓝灰色 */
+.permission-badge.signature-preinstalled {
+    background: rgba(96, 125, 139, 0.25);
+    color: #607d8b;
+}
+
+/* 内部|角色 - 棕色 */
+.permission-badge.internal-role {
+    background: rgba(121, 85, 72, 0.25);
+    color: #795548;
+}
+
+/* 内部|特权 - 深棕色 */
+.permission-badge.internal-privileged {
+    background: rgba(93, 64, 55, 0.25);
+    color: #8d6e63;
+}
+
+/* 普通 - 绿色 */
+.permission-badge.normal {
+    background: rgba(76, 175, 80, 0.25);
+    color: #4CAF50;
+}
+
+/* 普通|即时 - 浅绿色 */
+.permission-badge.normal-instant {
+    background: rgba(139, 195, 74, 0.25);
+    color: #8bc34a;
+}
+
+/* 普通|应用操作|即时 - 黄绿色 */
+.permission-badge.normal-appop {
+    background: rgba(205, 220, 57, 0.25);
+    color: #cddc39;
+}
+
+/* 其他 - 橙黄色 */
+.permission-badge.other {
+    background: rgba(255, 152, 0, 0.25);
+    color: #ff9800;
+}
+
+.permission-description {
+    font-size: 12px;
+    color: #bbbbbb;
+    margin-bottom: 3px;
+    line-height: 1.3;
+}
+
+.permission-full-name {
+    font-size: 12px;
+    color: #888888;
+    font-family: monospace;
+    word-break: break-all;
+    line-height: 1.3;
+}
+
+/* ========== 第三方服务面板样式 ========== */
+.services-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    height: 100%;
+    overflow-y: auto;
+}
+
+/* 服务区块网格布局 */
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.services-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.services-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+.services-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.services-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 100%;
+    width: 100%;
+    color: #888888;
+}

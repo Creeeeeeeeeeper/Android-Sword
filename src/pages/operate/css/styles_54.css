@@ -1,0 +1,41 @@
+.capture-type-item.selected {
+    border-color: #3b82f6 !important;
+    background: rgba(59, 130, 246, 0.1) !important;
+}
+
+.capture-script-item.selected,
+.capture-history-session.selected,
+.packet-row.selected {
+    background: rgba(59, 130, 246, 0.15) !important;
+}
+
+.section-title,
+.capture-type-name,
+.script-name,
+.session-target,
+.packets-title,
+.modal-title,
+.modal-question {
+    color: #ffffff !important;
+}
+
+.capture-type-desc,
+.script-desc,
+.session-time,
+.session-stats,
+.modal-desc {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.session-capture-target {
+    color: #60a5fa !important;
+    background: rgba(96, 165, 250, 0.15) !important;
+}
+
+.capture-type-radio,
+.script-checkbox,
+.section-action-btn,
+.capture-history-action-btn,
+.modal-btn-secondary {
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}

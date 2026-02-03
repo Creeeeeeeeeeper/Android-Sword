@@ -1,0 +1,110 @@
+.capture-packets-table tbody tr {
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.capture-packets-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.capture-packets-table tbody tr.selected {
+    background: rgba(100, 150, 255, 0.2);
+}
+
+/* 表格列宽 */
+.col-no {
+    width: 50px;
+}
+
+.col-time {
+    width: 100px;
+}
+
+.col-method {
+    width: 60px;
+}
+
+.col-host {
+    width: 150px;
+}
+
+.col-path {
+    min-width: 200px;
+}
+
+.col-status {
+    width: 60px;
+}
+
+.col-size {
+    width: 80px;
+}
+
+/* 方法标签颜色 */
+.method-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.method-tag.get {
+    background: rgba(76, 175, 80, 0.25);
+    color: #4CAF50;
+}
+
+.method-tag.post {
+    background: rgba(33, 150, 243, 0.25);
+    color: #2196F3;
+}
+
+.method-tag.put {
+    background: rgba(255, 152, 0, 0.25);
+    color: #FF9800;
+}
+
+.method-tag.delete {
+    background: rgba(244, 67, 54, 0.25);
+    color: #f44336;
+}
+
+.method-tag.patch {
+    background: rgba(156, 39, 176, 0.25);
+    color: #9c27b0;
+}
+
+/* 状态码颜色 */
+.status-code {
+    font-weight: 500;
+}
+
+.status-code.success {
+    color: #4CAF50;
+}
+
+.status-code.redirect {
+    color: #FF9800;
+}
+
+.status-code.client-error {
+    color: #f44336;
+}
+
+.status-code.server-error {
+    color: #e91e63;
+}
+
+.capture-packets-placeholder {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666666;
+    font-size: 14px;
+}
+
+.capture-packets-placeholder.hidden {
+    display: none;
+}

@@ -1,0 +1,131 @@
+.services-section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.services-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.services-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.services-section-count {
+    font-size: 12px;
+    color: #888888;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.services-section-content {
+    padding: 12px;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 250px;
+    max-height: 400px;
+}
+
+.services-section-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.services-section-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.services-section-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
+.services-empty {
+    color: #666666;
+    font-size: 13px;
+    text-align: center;
+    padding: 20px;
+}
+
+.services-group {
+    margin-bottom: 12px;
+}
+
+.services-group:last-child {
+    margin-bottom: 0;
+}
+
+.services-group-title {
+    font-size: 12px;
+    color: #888888;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.services-group-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.service-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.service-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.service-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #ffffff;
+}
+
+.service-package {
+    font-size: 11px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: #888888;
+    word-break: break-all;
+}
+
+.service-evidence {
+    font-size: 11px;
+    color: #f0ad4e;
+    background: rgba(240, 173, 78, 0.15);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: auto;
+}
+
+/* 调证值区块特殊样式 */
+.services-section[data-type="forensics"] {
+    border-color: rgba(240, 173, 78, 0.3);
+}
+
+.services-section[data-type="forensics"] .services-section-header {
+    background: rgba(240, 173, 78, 0.1);
+}
+
+.services-section[data-type="forensics"] .services-section-title {
+    color: #f0ad4e;
+}

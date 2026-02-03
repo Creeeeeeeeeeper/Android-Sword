@@ -1,0 +1,186 @@
+.ai-reanalyze-btn:hover {
+    background: #2563eb;
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+}
+
+.ai-history-btn {
+    background: #1e40af;
+    color: #ffffff;
+    border: 1px solid #3b82f6;
+}
+
+.ai-history-btn:hover {
+    background: #2563eb;
+    box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+}
+
+/* AI 右键菜单 */
+.ai-context-menu {
+    position: fixed;
+    background: #2a2a3a;
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    min-width: 200px;
+    padding: 8px 0;
+}
+
+.ai-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    color: #ffffff;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-size: 14px;
+}
+
+.ai-menu-item:hover {
+    background: rgba(102, 126, 234, 0.2);
+}
+
+.ai-menu-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 8px 0;
+}
+
+.ai-menu-section-title {
+    padding: 8px 16px;
+    font-size: 12px;
+    color: #888;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.ai-provider-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px 10px 32px;
+    color: #ffffff;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-size: 14px;
+}
+
+.ai-provider-item:hover {
+    background: rgba(102, 126, 234, 0.2);
+}
+
+.ai-provider-item.default::before {
+    content: '✓';
+    position: absolute;
+    left: 12px;
+    color: #667eea;
+    font-weight: bold;
+}
+
+.ai-menu-hint {
+    padding: 10px 16px 10px 32px;
+    color: #888;
+    font-size: 13px;
+    font-style: italic;
+    text-align: center;
+}
+
+/* 全局隐藏类 */
+.hidden {
+    display: none !important;
+}
+
+/* ========== AI 按钮新样式 ========== */
+.ai-btn {
+    background: linear-gradient(135deg,
+            #1e3a8a 0%,
+            /* 深蓝 */
+            #5b21b6 50%,
+            /* 深紫 */
+            #065f46 100%
+            /* 深绿 */
+        );
+    background-size: 200% 200%;
+    animation: ai-gradient-shift 3s ease infinite, ai-btn-blink 2s ease-in-out infinite;
+    border: none;
+    box-shadow: 0 2px 8px rgba(30, 58, 138, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.ai-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.5);
+}
+
+/* 渐变移动动画 */
+@keyframes ai-gradient-shift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* 闪烁动画 */
+@keyframes ai-btn-blink {
+
+    0%,
+    100% {
+        opacity: 1;
+        box-shadow: 0 2px 8px rgba(30, 58, 138, 0.3);
+    }
+
+    50% {
+        opacity: 0.7;
+        box-shadow: 0 4px 16px rgba(30, 58, 138, 0.6);
+    }
+}
+
+/* ========== AI 面板调整手柄 ========== */
+.ai-panel-resizer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 4px;
+    height: 100%;
+    background: transparent;
+    cursor: ew-resize;
+    z-index: 10;
+    transition: background 0.2s;
+}
+
+.ai-panel-resizer:hover,
+.ai-panel-resizer.active {
+    background: rgba(102, 126, 234, 0.5);
+}
+
+/* ========== 自定义滚动条样式 ========== */
+.ai-panel-content::-webkit-scrollbar,
+.ai-result::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.ai-panel-content::-webkit-scrollbar-track,
+.ai-result::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.ai-panel-content::-webkit-scrollbar-thumb,
+.ai-result::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.5);
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.ai-panel-content::-webkit-scrollbar-thumb:hover,
+.ai-result::-webkit-scrollbar-thumb:hover {
+    background: rgba(102, 126, 234, 0.7);
+}

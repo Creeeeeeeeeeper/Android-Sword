@@ -1,0 +1,118 @@
+.capture-stat-item[data-filter="UDP"] .stat-count {
+    color: #a78bfa;
+}
+
+.capture-stat-item[data-filter="HTTP"] .stat-count {
+    color: #34d399;
+}
+
+.capture-stat-item[data-filter="HTTPS"] .stat-count {
+    color: #fbbf24;
+}
+
+.capture-stat-item[data-filter="DNS"] .stat-count {
+    color: #f472b6;
+}
+
+/* 全流量抓包 wrapper 显示控制 */
+#realtime-packets-wrapper {
+    display: none;
+}
+
+#realtime-packets-wrapper.visible {
+    display: block !important;
+    flex: 1;
+    overflow: auto;
+}
+
+/* 全流量表格列宽调整 */
+.realtime-table .col-no {
+    width: 50px;
+}
+
+.realtime-table .col-time {
+    width: 80px;
+}
+
+.realtime-table .col-protocol {
+    width: 70px;
+}
+
+.realtime-table .col-direction {
+    width: 50px;
+}
+
+.realtime-table .col-src {
+    width: 150px;
+}
+
+.realtime-table .col-dst {
+    width: 150px;
+}
+
+.realtime-table .col-length {
+    width: 60px;
+}
+
+.realtime-table .col-info {
+    flex: 1;
+    min-width: 100px;
+}
+
+/* 协议标签 */
+.protocol-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.protocol-tag.protocol-tcp {
+    background: rgba(96, 165, 250, 0.2);
+    color: #60a5fa;
+}
+
+.protocol-tag.protocol-udp {
+    background: rgba(167, 139, 250, 0.2);
+    color: #a78bfa;
+}
+
+.protocol-tag.protocol-http {
+    background: rgba(52, 211, 153, 0.2);
+    color: #34d399;
+}
+
+.protocol-tag.protocol-https {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+}
+
+.protocol-tag.protocol-dns {
+    background: rgba(244, 114, 182, 0.2);
+    color: #f472b6;
+}
+
+.protocol-tag.protocol-icmp {
+    background: rgba(248, 113, 113, 0.2);
+    color: #f87171;
+}
+
+.protocol-tag.protocol-other {
+    background: rgba(156, 163, 175, 0.2);
+    color: #9ca3af;
+}
+
+/* 方向标签 */
+.direction-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.direction-tag.direction-out {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+}
