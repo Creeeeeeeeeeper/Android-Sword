@@ -2,7 +2,10 @@
 
 <p align="center">一款开源的apk一体化分析工具</p>
 
-<p align="center"><img src="./README/Androidrobot.png" width="200">
+
+
+<p align="center"><img src="./README/Android Sword.png" width="600">
+
 
 <p align="center">
   <a href="https://www.gnu.org/licenses/gpl-3.0">
